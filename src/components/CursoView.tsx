@@ -24,8 +24,6 @@ import {
   Save,
   Activity,
   Layers,
-  PieChart as PieIcon,
-  TrendingUp,
   Sparkles,
 } from 'lucide-react';
 
@@ -219,34 +217,35 @@ export const CursoView: React.FC<CursoViewProps> = ({
     }))
     .filter(x => x.notas.length > 0);
 
-  // Rangos de desempeño basados en la nota aprobatoria y la escala del colegio
-  const rangoAmplitud = (config.maxNota - config.notaAprobatoria) / 3;
+  // Rangos de desempeño basados en la configuración institucional
+  const rBajoMax = config.rangoBajoMax !== undefined ? config.rangoBajoMax : (config.notaAprobatoria - 0.1);
+  const rBasicoMax = config.rangoBasicoMax !== undefined ? config.rangoBasicoMax : 3.9;
+  const rAltoMax = config.rangoAltoMax !== undefined ? config.rangoAltoMax : 4.5;
+
   const rangos = [
     {
-      name: 'Bajo',
-      value: estudiantesConNota.filter(r => r.notaFinal < config.notaAprobatoria).length,
+      name: `Bajo (≤ ${rBajoMax})`,
+      value: estudiantesConNota.filter(r => r.notaFinal <= rBajoMax).length,
       itemStyle: { color: '#f87171' },
     },
     {
-      name: 'Básico',
+      name: `Básico (>${rBajoMax} - ${rBasicoMax})`,
       value: estudiantesConNota.filter(
-        r => r.notaFinal >= config.notaAprobatoria && r.notaFinal < config.notaAprobatoria + rangoAmplitud
+        r => r.notaFinal > rBajoMax && r.notaFinal <= rBasicoMax
       ).length,
       itemStyle: { color: '#fbbf24' },
     },
     {
-      name: 'Alto',
+      name: `Alto (>${rBasicoMax} - ${rAltoMax})`,
       value: estudiantesConNota.filter(
-        r =>
-          r.notaFinal >= config.notaAprobatoria + rangoAmplitud &&
-          r.notaFinal < config.notaAprobatoria + rangoAmplitud * 2
+        r => r.notaFinal > rBasicoMax && r.notaFinal <= rAltoMax
       ).length,
       itemStyle: { color: '#60a5fa' },
     },
     {
-      name: 'Superior',
+      name: `Superior (>${rAltoMax})`,
       value: estudiantesConNota.filter(
-        r => r.notaFinal >= config.notaAprobatoria + rangoAmplitud * 2
+        r => r.notaFinal > rAltoMax
       ).length,
       itemStyle: { color: '#34d399' },
     },

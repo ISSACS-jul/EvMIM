@@ -1,23 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Actividad, Curso, Estudiante, EvaluacionProfundaDetalle, AnioLectivo, Asignatura } from '../types';
+import { Actividad, Curso, EvaluacionProfundaDetalle } from '../types';
 import { DatabaseService } from '../services/db';
 import {
   X,
-  Sliders,
   CheckCircle,
-  XCircle,
   HelpCircle,
   AlertTriangle,
-  Award,
   Save,
   BookOpen,
   Calendar,
-  Layers,
   Sparkles,
-  ArrowRight,
   TrendingUp,
-  Percent,
-  Plus,
   RefreshCw,
   Info,
 } from 'lucide-react';

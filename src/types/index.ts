@@ -5,6 +5,9 @@ export interface ConfiguracionSistema {
   notaAprobatoria: number;
   periodosCount: number;
   pesosPeriodos: number[]; // e.g. [25, 25, 25, 25]
+  rangoBajoMax?: number; // Límite superior Desempeño Bajo (ej: 2.9)
+  rangoBasicoMax?: number; // Límite superior Desempeño Básico (ej: 3.9)
+  rangoAltoMax?: number; // Límite superior Desempeño Alto (ej: 4.5)
 }
 
 export interface CategoriaEvaluacion {

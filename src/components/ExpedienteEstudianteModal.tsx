@@ -11,7 +11,6 @@ import {
   TrendingUp,
   Search,
   Printer,
-  ChevronRight,
   Layers,
 } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';

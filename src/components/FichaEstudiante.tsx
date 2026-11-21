@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { ResumenEstudiante, Estudiante } from '../types';
 import { DatabaseService } from '../services/db';
 import { X, TrendingUp, Award, AlertTriangle, XCircle, BookOpen, Edit3 } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
@@ -36,7 +35,7 @@ export const FichaEstudiante: React.FC<FichaEstudianteProps> = ({ estudianteId, 
         setSelectedCursoId(estudiante.cursoIds[0]);
       }
     }
-  }, [cursoId, estudianteId]);
+  }, [cursoId, estudianteId, refreshCount]);
 
   const activeCursoId = selectedCursoId || estudiante?.cursoIds[0] || '';
   const resumen = DatabaseService.getResumenEstudiante(estudianteId, activeCursoId);

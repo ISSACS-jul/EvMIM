@@ -35,6 +35,9 @@ const DEFAULT_CONFIG: ConfiguracionSistema = {
   notaAprobatoria: 3.0,
   periodosCount: 4,
   pesosPeriodos: [25, 25, 25, 25],
+  rangoBajoMax: 2.9,
+  rangoBasicoMax: 3.9,
+  rangoAltoMax: 4.5,
 };
 
 const DEFAULT_CATEGORIAS: CategoriaEvaluacion[] = [
@@ -876,7 +879,28 @@ export class DatabaseService {
   }
 
   // --- COPIA DE SEGURIDAD Y RESTAURACIÓN (BACKUP & RESTORE) ---
-  static exportarBackup(): BackupData {
+  static getAdjuntos(): { actividadId: string; tituloActividad: string; nombre: string; base64: string }[] {
+    const acts = this.get<Actividad[]>(STORAGE_KEYS.ACTIVIDADES, []);
+    return acts
+      .filter(a => a.archivoAdjuntoNombre && a.archivoAdjuntoBase64)
+      .map(a => ({
+        actividadId: a.id,
+        tituloActividad: a.titulo,
+        nombre: a.archivoAdjuntoNombre!,
+        base64: a.archivoAdjuntoBase64!,
+      }));
+  }
+
+  static exportarBackup(incluirAdjuntos: boolean = false): BackupData {
+    const rawActividades = this.get<Actividad[]>(STORAGE_KEYS.ACTIVIDADES, []);
+    const actividadesParaExportar = incluirAdjuntos
+      ? rawActividades
+      : rawActividades.map(a => {
+          const copia = { ...a };
+          delete copia.archivoAdjuntoBase64;
+          return copia;
+        });
+
     return {
       version: '0.1.0',
       fechaExportacion: new Date().toISOString(),
@@ -887,7 +911,7 @@ export class DatabaseService {
       cursos: this.getCursos(),
       asignaturas: this.getAsignaturas(),
       estudiantes: this.getEstudiantes(),
-      actividades: this.get<Actividad[]>(STORAGE_KEYS.ACTIVIDADES, []),
+      actividades: actividadesParaExportar,
       calificaciones: this.get<Calificacion[]>(STORAGE_KEYS.CALIFICACIONES, []),
       evaluacionesProfundas: this.get<EvaluacionProfundaDetalle[]>(STORAGE_KEYS.EVALUACIONES_PROFUNDAS, []),
     };

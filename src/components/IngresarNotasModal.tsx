@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Actividad } from '../types';
 import { DatabaseService } from '../services/db';
-import { Save, Paperclip, ExternalLink, X, BookOpen, AlertCircle } from 'lucide-react';
+import { Save, Paperclip, ExternalLink, X, AlertCircle, ClipboardPaste } from 'lucide-react';
 
 interface IngresarNotasModalProps {
   isOpen: boolean;
@@ -68,6 +68,34 @@ export const IngresarNotasModal: React.FC<IngresarNotasModalProps> = ({
         setFocusIdx(next);
         inputRefs.current[next]?.focus();
       }
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>, startIdx: number) => {
+    const text = e.clipboardData.getData('text');
+    if (!text) return;
+    const lineas = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trimEnd().split('\n');
+    if (lineas.length > 1 || lineas[0].includes('\t')) {
+      e.preventDefault();
+      setNotas(prev => {
+        const nextNotas = { ...prev };
+        lineas.forEach((linea, offset) => {
+          const targetIdx = startIdx + offset;
+          if (targetIdx < estudiantes.length) {
+            const est = estudiantes[targetIdx];
+            const partes = linea.split('\t');
+            const valorLimpio = partes[0].trim().replace(/^"|"$/g, '').replace(',', '.');
+            if (valorLimpio !== '' && !isNaN(parseFloat(valorLimpio))) {
+              const num = Math.min(config.maxNota, Math.max(config.minNota, parseFloat(valorLimpio)));
+              nextNotas[est.id] = {
+                ...(nextNotas[est.id] || { obs: '' }),
+                nota: String(Math.round(num * 100) / 100),
+              };
+            }
+          }
+        });
+        return nextNotas;
+      });
     }
   };
 
@@ -177,8 +205,14 @@ export const IngresarNotasModal: React.FC<IngresarNotasModalProps> = ({
           ))}
         </div>
 
-        <p className="text-xs text-slate-600 mb-3 flex-shrink-0">
-          💡 Presiona <kbd className="bg-slate-700 border border-slate-600 px-1 rounded text-xs text-slate-300">Enter</kbd> o <kbd className="bg-slate-700 border border-slate-600 px-1 rounded text-xs text-slate-300">Tab</kbd> para pasar al siguiente
+        <p className="text-xs text-slate-500 mb-3 flex-shrink-0 flex items-center justify-between flex-wrap gap-2">
+          <span>
+            💡 Presiona <kbd className="bg-slate-700 border border-slate-600 px-1 rounded text-xs text-slate-300">Enter</kbd> o <kbd className="bg-slate-700 border border-slate-600 px-1 rounded text-xs text-slate-300">Tab</kbd> para pasar al siguiente
+          </span>
+          <span className="flex items-center gap-1 text-sky-400 font-medium">
+            <ClipboardPaste className="w-3.5 h-3.5" />
+            Copia columna en Excel y pega con <kbd className="bg-slate-700 border border-slate-600 px-1.5 py-0.5 rounded text-xs text-sky-200 font-mono">Ctrl+V</kbd>
+          </span>
         </p>
 
         {/* Lista de estudiantes */}
@@ -230,6 +264,7 @@ export const IngresarNotasModal: React.FC<IngresarNotasModalProps> = ({
                     }
                     onFocus={() => setFocusIdx(idx)}
                     onKeyDown={e => handleKeyDown(e, idx)}
+                    onPaste={e => handlePaste(e, idx)}
                     placeholder="Nota"
                     className={`w-20 text-center px-2 py-1.5 border rounded-lg text-sm font-bold bg-slate-700 focus:ring-2 focus:ring-sky-500 outline-none transition ${
                       notaVal ? getNotaBg(notaVal) : 'border-slate-600 text-slate-400'
@@ -280,25 +315,6 @@ export const IngresarNotasModal: React.FC<IngresarNotasModalProps> = ({
           </div>
         </div>
       </div>
-
-      <EvaluadorProfundoModal
-        isOpen={evaluadorProfundoOpen}
-        onClose={() => {
-          setEvaluadorProfundoOpen(false);
-          const califs = DatabaseService.getCalificaciones(actividad.id);
-          const map: { [id: string]: { nota: string; obs: string } } = {};
-          for (const e of estudiantes) {
-            const cal = califs.find(c => c.estudianteId === e.id);
-            map[e.id] = { nota: cal ? String(cal.nota) : '', obs: cal?.observaciones || '' };
-          }
-          setNotas(map);
-        }}
-        actividadInicial={actividad}
-        onSaved={() => {
-          setEvaluadorProfundoOpen(false);
-          onClose();
-        }}
-      />
     </div>
   );
 };

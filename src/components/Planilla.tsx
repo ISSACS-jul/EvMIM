@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Actividad, Calificacion, Estudiante, Curso } from '../types';
 import { DatabaseService } from '../services/db';
 import { FichaEstudiante } from './FichaEstudiante';
+import { ClipboardPaste, CheckCircle2 } from 'lucide-react';
 
 interface PlanillaProps {
   curso: Curso;
@@ -23,8 +24,68 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
   const [actividades, setActividades] = useState<Actividad[]>([]);
   const [calificaciones, setCalificaciones] = useState<Calificacion[]>([]);
   const [celdaEditando, setCeldaEditando] = useState<CeldaEditando | null>(null);
+  const [celdaSeleccionada, setCeldaSeleccionada] = useState<{ estudianteId: string; actividadId: string } | null>(null);
+  const [mensajeNotificacion, setMensajeNotificacion] = useState<{ tipo: 'exito' | 'info'; texto: string } | null>(null);
   const [fichaEstudianteId, setFichaEstudianteId] = useState<string | null>(null);
   const [refresh, setRefresh] = useState(0);
+
+  const categoriasCon = categorias.filter(cat => actividades.some(a => a.categoriaId === cat.id));
+  const actividadesEnOrden = categoriasCon.flatMap(cat => actividades.filter(a => a.categoriaId === cat.id));
+
+  const procesarPegado = (texto: string, startEstId: string, startActId: string) => {
+    if (!texto) return;
+
+    // Normalizar saltos de línea y limpiar espacios al final
+    const lineas = texto.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trimEnd().split('\n');
+    if (lineas.length === 0) return;
+
+    const startEstIdx = estudiantes.findIndex(e => e.id === startEstId);
+    const startActIdx = actividadesEnOrden.findIndex(a => a.id === startActId);
+
+    if (startEstIdx === -1 || startActIdx === -1) return;
+
+    const lote: { estudianteId: string; actividadId: string; nota: number }[] = [];
+    let totalNotas = 0;
+
+    lineas.forEach((linea, rOffset) => {
+      const estIdx = startEstIdx + rOffset;
+      if (estIdx >= estudiantes.length) return;
+      const est = estudiantes[estIdx];
+
+      const celdas = linea.split('\t');
+      celdas.forEach((celda, cOffset) => {
+        const actIdx = startActIdx + cOffset;
+        if (actIdx >= actividadesEnOrden.length) return;
+        const act = actividadesEnOrden[actIdx];
+
+        const valorLimpio = celda.trim().replace(/^"|"$/g, '').replace(',', '.');
+        if (valorLimpio === '' || valorLimpio === '-' || valorLimpio === '—') return;
+
+        const num = parseFloat(valorLimpio);
+        if (!isNaN(num)) {
+          const notaClamped = Math.min(config.maxNota, Math.max(config.minNota, num));
+          lote.push({
+            estudianteId: est.id,
+            actividadId: act.id,
+            nota: Math.round(notaClamped * 100) / 100,
+          });
+          totalNotas++;
+        }
+      });
+    });
+
+    if (lote.length > 0) {
+      DatabaseService.saveCalificacionesLote(lote);
+      setCeldaEditando(null);
+      setRefresh(r => r + 1);
+      onRefresh?.();
+      setMensajeNotificacion({
+        tipo: 'exito',
+        texto: `¡Se pegaron ${totalNotas} nota(s) desde Excel correctamente!`,
+      });
+      setTimeout(() => setMensajeNotificacion(null), 4000);
+    }
+  };
 
   const ordenarPorApellido = (lista: Estudiante[]) => {
     return [...lista].sort((a, b) => {
@@ -142,14 +203,11 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
 
   // Promedio general categoría (columna DEF)
   const promDefCat = (catId: string): number | null => {
-    const notas = estudiantes.map(e => promCat(e, catId)).filter((n): n is number => n !== null);
-    // TS fix:
-    const promCatFixed = (estudianteId: string, cid: string) => promCat(estudianteId, cid);
-    const notas2 = estudiantes
-      .map(e => promCatFixed(e.id, catId))
+    const notas = estudiantes
+      .map(e => promCat(e.id, catId))
       .filter((n): n is number => n !== null);
-    if (notas2.length === 0) return null;
-    return notas2.reduce((a, b) => a + b, 0) / notas2.length;
+    if (notas.length === 0) return null;
+    return notas.reduce((a, b) => a + b, 0) / notas.length;
   };
 
   if (estudiantes.length === 0) {
@@ -170,11 +228,49 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
     );
   }
 
-  const categoriasCon = categorias.filter(cat => actividades.some(a => a.categoriaId === cat.id));
-
   return (
     <>
-      <div className="planilla-container rounded-xl border border-slate-700 overflow-auto max-h-[calc(100vh-220px)]">
+      {mensajeNotificacion && (
+        <div className="mb-3 px-4 py-2.5 bg-emerald-950/90 border border-emerald-500/80 text-emerald-200 rounded-xl flex items-center justify-between text-xs font-semibold shadow-lg">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            <span>{mensajeNotificacion.texto}</span>
+          </div>
+          <button
+            onClick={() => setMensajeNotificacion(null)}
+            className="text-emerald-400 hover:text-white font-bold ml-2 text-sm"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between text-xs text-slate-400 mb-2 px-1">
+        <div className="flex items-center gap-1.5">
+          <ClipboardPaste className="w-3.5 h-3.5 text-sky-400" />
+          <span>
+            Tip Excel: Copia una columna de notas en Excel y presiona{' '}
+            <kbd className="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-sky-300 font-mono font-semibold">
+              Ctrl + V
+            </kbd>{' '}
+            sobre cualquier celda para rellenar hacia abajo automáticamente.
+          </span>
+        </div>
+      </div>
+
+      <div
+        className="planilla-container rounded-xl border border-slate-700 overflow-auto max-h-[calc(100vh-220px)] outline-none"
+        tabIndex={0}
+        onPaste={e => {
+          if (celdaSeleccionada && !celdaEditando) {
+            const text = e.clipboardData.getData('text');
+            if (text) {
+              e.preventDefault();
+              procesarPegado(text, celdaSeleccionada.estudianteId, celdaSeleccionada.actividadId);
+            }
+          }
+        }}
+      >
         <table className="border-collapse text-xs" style={{ minWidth: 'max-content' }}>
           <thead>
             {/* Fila 1: grupos de categorías */}
@@ -290,13 +386,19 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
                         {actsDeCategoria.map(act => {
                           const cal = getNota(est.id, act.id);
                           const isEditing = celdaEditando?.estudianteId === est.id && celdaEditando?.actividadId === act.id;
+                          const isSelected = celdaSeleccionada?.estudianteId === est.id && celdaSeleccionada?.actividadId === act.id;
 
                           return (
                             <td
                               key={act.id}
-                              className="border-r border-slate-700/50 px-1 py-1 text-center cursor-pointer"
-                              onClick={() => !isEditing && handleCeldaClick(est.id, act.id)}
-                              title={`${act.titulo}\n${est.nombre} ${est.apellido}`}
+                              className={`border-r border-slate-700/50 px-1 py-1 text-center cursor-pointer transition ${
+                                isSelected ? 'ring-2 ring-sky-400 bg-sky-500/20' : ''
+                              }`}
+                              onClick={() => {
+                                setCeldaSeleccionada({ estudianteId: est.id, actividadId: act.id });
+                                if (!isEditing) handleCeldaClick(est.id, act.id);
+                              }}
+                              title={`${act.titulo}\n${est.nombre} ${est.apellido}\n(Haz clic y presiona Ctrl+V para pegar notas de Excel)`}
                             >
                               {isEditing ? (
                                 <input
@@ -305,11 +407,18 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
                                   onChange={e => setCeldaEditando({ ...celdaEditando, valorActual: e.target.value })}
                                   onKeyDown={handleCeldaGuardar}
                                   onBlur={handleCeldaBlur}
+                                  onPaste={e => {
+                                    const text = e.clipboardData.getData('text');
+                                    if (text && (text.includes('\n') || text.includes('\t'))) {
+                                      e.preventDefault();
+                                      procesarPegado(text, est.id, act.id);
+                                    }
+                                  }}
                                   min={config.minNota}
                                   max={config.maxNota}
                                   step="0.1"
                                   autoFocus
-                                  className="w-14 text-center bg-sky-900 border border-sky-500 rounded text-sky-200 text-xs py-0.5 outline-none"
+                                  className="w-14 text-center bg-sky-900 border border-sky-500 rounded text-sky-200 text-xs py-0.5 outline-none font-bold"
                                 />
                               ) : (
                                 <span className={`inline-block w-12 py-0.5 rounded text-xs font-semibold ${cal ? getNotaBg(cal.nota) : 'text-slate-600 hover:bg-slate-700/50 hover:text-slate-400'}`}>

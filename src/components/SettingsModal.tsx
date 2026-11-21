@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { ConfiguracionSistema, CategoriaEvaluacion } from '../types';
 import { DatabaseService } from '../services/db';
-import { Save, Plus, Trash2, CheckCircle, AlertCircle, X, Download, Upload, Database, FileText } from 'lucide-react';
+import { Save, Plus, Trash2, CheckCircle, AlertCircle, X, Download, Upload, Database, Paperclip } from 'lucide-react';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -52,26 +52,55 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
   };
 
   // Exportar Copia de Seguridad (Backup)
-  const handleExportarBackup = () => {
+  const handleExportarBackup = (incluirAdjuntos: boolean) => {
     try {
-      const data = DatabaseService.exportarBackup();
+      const data = DatabaseService.exportarBackup(incluirAdjuntos);
       const jsonStr = JSON.stringify(data, null, 2);
       const blob = new Blob([jsonStr], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const hoy = new Date().toISOString().split('T')[0];
+      const tipo = incluirAdjuntos ? 'completo' : 'ligero';
 
       const a = document.createElement('a');
       a.href = url;
-      a.download = `evaluador-respaldo-${hoy}.json`;
+      a.download = `evaluador-respaldo-${tipo}-${hoy}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      setBackupStatus('✓ Copia de seguridad descargada exitosamente.');
-      setTimeout(() => setBackupStatus(null), 3000);
+      setBackupStatus(`✓ Copia de seguridad (${incluirAdjuntos ? 'completa con adjuntos' : 'ligera sin base64 pesado'}) descargada.`);
+      setTimeout(() => setBackupStatus(null), 3500);
     } catch (err: any) {
       setBackupStatus(`Error al exportar: ${err.message || 'desconocido'}`);
+    }
+  };
+
+  // Descargar individualmente los archivos de la carpeta Adjuntos
+  const handleDescargarAdjuntos = () => {
+    try {
+      const adjuntos = DatabaseService.getAdjuntos();
+      if (adjuntos.length === 0) {
+        setBackupStatus('No hay documentos ni imágenes adjuntos en las actividades actualmente.');
+        setTimeout(() => setBackupStatus(null), 3000);
+        return;
+      }
+
+      adjuntos.forEach((adj, idx) => {
+        setTimeout(() => {
+          const a = document.createElement('a');
+          a.href = adj.base64;
+          a.download = adj.nombre;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        }, idx * 250);
+      });
+
+      setBackupStatus(`✓ Exportando ${adjuntos.length} archivo(s) para tu carpeta local "Adjuntos".`);
+      setTimeout(() => setBackupStatus(null), 4000);
+    } catch (err: any) {
+      setBackupStatus(`Error al descargar adjuntos: ${err.message || 'desconocido'}`);
     }
   };
 
@@ -154,10 +183,58 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
             </div>
           </section>
 
+          {/* Rangos de Desempeño Institucional (Bajo, Básico, Alto, Superior) */}
+          <section className="bg-slate-900/60 p-4 rounded-xl border border-slate-700">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+              2. Rangos de Desempeño (Escala Analítica)
+            </h3>
+            <p className="text-xs text-slate-500 mb-3">
+              Personaliza los límites para clasificar a los estudiantes en Bajo, Básico, Alto y Superior en las analíticas y gráficos.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="bg-slate-800/80 p-3 rounded-lg border border-rose-500/30">
+                <span className="text-xs font-bold text-rose-400 block mb-1">Desempeño Bajo</span>
+                <span className="text-[11px] text-slate-400 block mb-2">Desde {config.minNota} hasta:</span>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={config.rangoBajoMax !== undefined ? config.rangoBajoMax : (config.notaAprobatoria - 0.1)}
+                  onChange={e => setConfig({ ...config, rangoBajoMax: parseFloat(e.target.value) || 0 })}
+                  className={input}
+                />
+              </div>
+              <div className="bg-slate-800/80 p-3 rounded-lg border border-amber-500/30">
+                <span className="text-xs font-bold text-amber-400 block mb-1">Desempeño Básico</span>
+                <span className="text-[11px] text-slate-400 block mb-2">Aprobatorio hasta:</span>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={config.rangoBasicoMax !== undefined ? config.rangoBasicoMax : 3.9}
+                  onChange={e => setConfig({ ...config, rangoBasicoMax: parseFloat(e.target.value) || 0 })}
+                  className={input}
+                />
+              </div>
+              <div className="bg-slate-800/80 p-3 rounded-lg border border-sky-500/30">
+                <span className="text-xs font-bold text-sky-400 block mb-1">Desempeño Alto</span>
+                <span className="text-[11px] text-slate-400 block mb-2">Hasta:</span>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={config.rangoAltoMax !== undefined ? config.rangoAltoMax : 4.5}
+                  onChange={e => setConfig({ ...config, rangoAltoMax: parseFloat(e.target.value) || 0 })}
+                  className={input}
+                />
+              </div>
+            </div>
+            <div className="mt-2 text-xs text-emerald-400/90 font-medium bg-emerald-950/40 border border-emerald-500/30 p-2 rounded-lg">
+              ★ <b>Desempeño Superior:</b> Abarca automáticamente notas superiores a {config.rangoAltoMax !== undefined ? config.rangoAltoMax : 4.5} hasta {config.maxNota}.
+            </div>
+          </section>
+
           {/* Periodos */}
           <section className="bg-slate-900/60 p-4 rounded-xl border border-slate-700">
             <div className="flex justify-between items-center mb-3">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">2. Periodos Escolares</h3>
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">3. Periodos Escolares</h3>
               <span className={`text-xs font-bold px-2 py-1 rounded ${sumaPesosPeriodos === 100 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
                 Suma: {sumaPesosPeriodos}% {sumaPesosPeriodos === 100 ? '✓' : '⚠️'}
               </span>
@@ -184,7 +261,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
           {/* Categorías */}
           <section className="bg-slate-900/60 p-4 rounded-xl border border-slate-700">
             <div className="flex justify-between items-center mb-3">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">3. Etiquetas y Pesos</h3>
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">4. Etiquetas y Pesos</h3>
               <span className={`text-xs font-bold px-2 py-1 rounded ${sumaPesosCategorias === 100 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
                 Total: {sumaPesosCategorias}% {sumaPesosCategorias === 100 ? '✓' : '(debe ser 100%)'}
               </span>
@@ -220,11 +297,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
           <section className="bg-slate-900/60 p-4 rounded-xl border border-slate-700">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-                <Database className="w-4 h-4 text-sky-400" /> 4. Copia de Seguridad y Restauración de Datos
+                <Database className="w-4 h-4 text-sky-400" /> 5. Copia de Seguridad y Gestión de Archivos Adjuntos
               </h3>
             </div>
             <p className="text-xs text-slate-400 mb-4">
-              Exporta un respaldo completo de todos los estudiantes, cursos, asignaturas, actividades y calificaciones en un archivo JSON o restaura un respaldo previo.
+              Exporta tus datos estructurados en formato ligero sin archivos pesados base64, respalda con adjuntos o descarga los documentos para tu carpeta local "Adjuntos".
             </p>
 
             {backupStatus && (
@@ -239,11 +316,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Botón Exportar */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+              {/* Exportar JSON Ligero */}
               <button
                 type="button"
-                onClick={handleExportarBackup}
+                onClick={() => handleExportarBackup(false)}
                 className="p-3 bg-slate-800 hover:bg-slate-750 border border-slate-600 hover:border-sky-500 rounded-xl flex items-center gap-3 transition text-left group"
               >
                 <div className="w-9 h-9 rounded-lg bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 group-hover:scale-105 transition">
@@ -251,9 +328,45 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                 </div>
                 <div>
                   <div className="text-xs font-bold text-slate-200 group-hover:text-sky-300">
-                    Exportar Copia (.json)
+                    Exportar JSON Ligero
                   </div>
-                  <div className="text-[11px] text-slate-500">Descargar base de datos completa</div>
+                  <div className="text-[11px] text-slate-500">BD completa sin archivos pesados (Recomendado)</div>
+                </div>
+              </button>
+
+              {/* Exportar JSON Completo */}
+              <button
+                type="button"
+                onClick={() => handleExportarBackup(true)}
+                className="p-3 bg-slate-800 hover:bg-slate-750 border border-slate-600 hover:border-sky-500 rounded-xl flex items-center gap-3 transition text-left group"
+              >
+                <div className="w-9 h-9 rounded-lg bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 group-hover:scale-105 transition">
+                  <Download className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-200 group-hover:text-sky-300">
+                    Exportar JSON Completo
+                  </div>
+                  <div className="text-[11px] text-slate-500">Incluye adjuntos embebidos en base64</div>
+                </div>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Descargar archivos para carpeta Adjuntos */}
+              <button
+                type="button"
+                onClick={handleDescargarAdjuntos}
+                className="p-3 bg-slate-800 hover:bg-slate-750 border border-slate-600 hover:border-emerald-500 rounded-xl flex items-center gap-3 transition text-left group"
+              >
+                <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition">
+                  <Paperclip className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-200 group-hover:text-emerald-300">
+                    Exportar Carpeta "Adjuntos"
+                  </div>
+                  <div className="text-[11px] text-slate-500">Descarga los documentos de actividades</div>
                 </div>
               </button>
 

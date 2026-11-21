@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Curso, AnioLectivo } from './types';
 import { DatabaseService } from './services/db';
 import { CursoView } from './components/CursoView';
