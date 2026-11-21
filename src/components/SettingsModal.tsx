@@ -1,8 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { ConfiguracionSistema, CategoriaEvaluacion, GoogleDriveAccount } from '../types';
+import { ConfiguracionSistema, CategoriaEvaluacion } from '../types';
 import { DatabaseService } from '../services/db';
-import { GoogleDriveService } from '../services/googleDrive';
-import { RestaurarDriveModal } from './RestaurarDriveModal';
 import {
   Save,
   Plus,
@@ -14,10 +12,6 @@ import {
   Upload,
   Database,
   Paperclip,
-  Cloud,
-  LogOut,
-  RefreshCw,
-  ShieldCheck,
 } from 'lucide-react';
 
 interface SettingsModalProps {
@@ -32,11 +26,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
   const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
   const [backupStatus, setBackupStatus] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Estados de Google Drive Nube
-  const [driveAccount, setDriveAccount] = useState<GoogleDriveAccount | null>(GoogleDriveService.getAccount());
-  const [driveLoading, setDriveLoading] = useState(false);
-  const [restaurarDriveOpen, setRestaurarDriveOpen] = useState(false);
 
   if (!isOpen) return null;
 
@@ -162,45 +151,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
     reader.readAsText(file);
     // Limpiar input para permitir reimportar si es necesario
     e.target.value = '';
-  };
-
-  // Métodos de Google Drive
-  const handleConectarDrive = async () => {
-    setDriveLoading(true);
-    setBackupStatus(null);
-    try {
-      const acc = await GoogleDriveService.iniciarLogin();
-      setDriveAccount(acc);
-      setBackupStatus(`✓ Conectado exitosamente con Google Drive como ${acc.email}`);
-      setTimeout(() => setBackupStatus(null), 4000);
-    } catch (err: any) {
-      setBackupStatus(`Error al conectar con Google Drive: ${err.message || 'desconocido'}`);
-    } finally {
-      setDriveLoading(false);
-    }
-  };
-
-  const handleDesconectarDrive = () => {
-    GoogleDriveService.disconnect();
-    setDriveAccount(null);
-    setBackupStatus('✓ Sesión de Google Drive cerrada.');
-    setTimeout(() => setBackupStatus(null), 3000);
-  };
-
-  const handleSubirDrive = async (incluirAdjuntos: boolean) => {
-    setDriveLoading(true);
-    setBackupStatus(null);
-    try {
-      const res = await GoogleDriveService.subirRespaldo(incluirAdjuntos);
-      setBackupStatus(
-        `✓ Respaldo subido a tu Google Drive: "${res.nombreArchivo}" (${res.sizeKb} KB) en la carpeta "Evaluador_Respaldos".`
-      );
-      setTimeout(() => setBackupStatus(null), 5000);
-    } catch (err: any) {
-      setBackupStatus(`Error al subir a Google Drive: ${err.message || 'desconocido'}`);
-    } finally {
-      setDriveLoading(false);
-    }
   };
 
   const input = "w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-sm text-slate-100 focus:ring-2 focus:ring-sky-500 outline-none";
@@ -364,11 +314,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
           <section className="bg-slate-900/60 p-4 rounded-xl border border-slate-700">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-                <Database className="w-4 h-4 text-sky-400" /> 5. Copia de Seguridad & Nube
+                <Database className="w-4 h-4 text-sky-400" /> 5. Copia de Seguridad y Gestión de Archivos Adjuntos
               </h3>
             </div>
             <p className="text-xs text-slate-400 mb-4">
-              Respalda y sincroniza tus calificaciones localmente o directamente en tu cuenta personal de Google Drive.
+              Exporta tus datos estructurados en formato ligero sin archivos pesados base64, respalda con adjuntos o descarga los documentos para tu carpeta local "Adjuntos".
             </p>
 
             {backupStatus && (
@@ -387,143 +337,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                 <span>{backupStatus}</span>
               </div>
             )}
-
-            {/* SECCIÓN GOOGLE DRIVE NUBE */}
-            <div className="mb-5 p-4 rounded-xl bg-slate-800/90 border border-sky-500/30 shadow-md">
-              <div className="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-slate-700/80">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center text-white shadow">
-                    <Cloud className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold text-slate-100 flex items-center gap-2">
-                      Google Drive Cloud Backup
-                      <span className="text-[10px] font-semibold bg-sky-500/20 text-sky-300 border border-sky-500/30 px-2 py-0.5 rounded-md">
-                        OAuth 2.0 PKCE
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-slate-400">
-                      Carpeta: <code className="text-sky-300">Evaluador_Respaldos</code> en tu Google Drive
-                    </div>
-                  </div>
-                </div>
-
-                {driveAccount ? (
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-2 bg-slate-900/80 border border-emerald-500/40 px-2.5 py-1 rounded-xl">
-                      {driveAccount.picture ? (
-                        <img
-                          src={driveAccount.picture}
-                          alt={driveAccount.name}
-                          className="w-5 h-5 rounded-full"
-                        />
-                      ) : (
-                        <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold">
-                          {driveAccount.name?.[0] || 'G'}
-                        </div>
-                      )}
-                      <span className="text-xs font-medium text-emerald-300 truncate max-w-[140px]">
-                        {driveAccount.email}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleDesconectarDrive}
-                      className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-700 rounded-lg transition"
-                      title="Desconectar cuenta de Google Drive"
-                    >
-                      <LogOut className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleConectarDrive}
-                    disabled={driveLoading}
-                    className="px-3.5 py-1.5 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white rounded-xl text-xs font-semibold flex items-center gap-2 transition shadow"
-                  >
-                    {driveLoading ? (
-                      <>
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Conectando...
-                      </>
-                    ) : (
-                      <>
-                        <Cloud className="w-3.5 h-3.5" /> Conectar con Google Drive
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
-
-              {/* Acciones de Google Drive si está conectado */}
-              {driveAccount ? (
-                <div className="mt-3.5 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => handleSubirDrive(false)}
-                    disabled={driveLoading}
-                    className="p-2.5 bg-slate-900/90 hover:bg-slate-900 border border-slate-700 hover:border-sky-500 rounded-xl flex items-center gap-2.5 transition text-left group"
-                  >
-                    <div className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 flex-shrink-0">
-                      <Cloud className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-slate-200 group-hover:text-sky-300">
-                        Subir Respaldo
-                      </div>
-                      <div className="text-[10px] text-slate-400">Ligero (rápido)</div>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleSubirDrive(true)}
-                    disabled={driveLoading}
-                    className="p-2.5 bg-slate-900/90 hover:bg-slate-900 border border-slate-700 hover:border-sky-500 rounded-xl flex items-center gap-2.5 transition text-left group"
-                  >
-                    <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 flex-shrink-0">
-                      <Cloud className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-slate-200 group-hover:text-purple-300">
-                        Subir con Adjuntos
-                      </div>
-                      <div className="text-[10px] text-slate-400">Con guías y rúbricas</div>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setRestaurarDriveOpen(true)}
-                    className="p-2.5 bg-slate-900/90 hover:bg-slate-900 border border-slate-700 hover:border-emerald-500 rounded-xl flex items-center gap-2.5 transition text-left group"
-                  >
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 flex-shrink-0">
-                      <Download className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-slate-200 group-hover:text-emerald-300">
-                        Restaurar de Drive
-                      </div>
-                      <div className="text-[10px] text-slate-400">Elegir y descargar copia</div>
-                    </div>
-                  </button>
-                </div>
-              ) : (
-                <div className="mt-3 flex items-start gap-2.5 text-xs text-slate-400 bg-slate-900/40 p-2.5 rounded-lg border border-slate-700/50">
-                  <ShieldCheck className="w-4 h-4 text-sky-400 flex-shrink-0 mt-0.5" />
-                  <p>
-                    <b>Privacidad total:</b> Se utiliza el permiso restringido <code>drive.file</code>. La app solo tiene acceso a crear y restaurar los respaldos en su propia carpeta, sin acceso a tus fotos ni documentos personales.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* RESPALDO Y EXPORTACIÓN LOCAL */}
-            <div className="mb-2">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
-                Copias y Archivos Locales:
-              </span>
-            </div>
 
             <input
               type="file"
@@ -604,19 +417,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
             </div>
           </section>
         </div>
-
-        {restaurarDriveOpen && (
-          <RestaurarDriveModal
-            isOpen={restaurarDriveOpen}
-            onClose={() => setRestaurarDriveOpen(false)}
-            onRestored={() => {
-              setConfig(DatabaseService.getConfiguracion());
-              setCategorias(DatabaseService.getCategorias());
-              onSaved();
-              onClose();
-            }}
-          />
-        )}
 
         <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-slate-700">
           <button onClick={onClose} className="px-4 py-2 border border-slate-700 rounded-xl text-sm text-slate-400 hover:bg-slate-700 transition">Cancelar</button>
