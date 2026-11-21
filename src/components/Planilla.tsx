@@ -1,0 +1,358 @@
+import React, { useState, useEffect } from 'react';
+import { Actividad, Calificacion, Estudiante, Curso } from '../types';
+import { DatabaseService } from '../services/db';
+import { FichaEstudiante } from './FichaEstudiante';
+
+interface PlanillaProps {
+  curso: Curso;
+  periodo: number;
+  asignaturaId?: string;
+  onRefresh?: () => void;
+}
+
+interface CeldaEditando {
+  estudianteId: string;
+  actividadId: string;
+  valorActual: string;
+}
+
+export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId, onRefresh }) => {
+  const config = DatabaseService.getConfiguracion();
+  const categorias = DatabaseService.getCategorias();
+  const [estudiantes, setEstudiantes] = useState<Estudiante[]>([]);
+  const [actividades, setActividades] = useState<Actividad[]>([]);
+  const [calificaciones, setCalificaciones] = useState<Calificacion[]>([]);
+  const [celdaEditando, setCeldaEditando] = useState<CeldaEditando | null>(null);
+  const [fichaEstudianteId, setFichaEstudianteId] = useState<string | null>(null);
+  const [refresh, setRefresh] = useState(0);
+
+  const ordenarPorApellido = (lista: Estudiante[]) => {
+    return [...lista].sort((a, b) => {
+      const cmp = (a.apellido || '').localeCompare(b.apellido || '', 'es', { sensitivity: 'base' });
+      if (cmp !== 0) return cmp;
+      return (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' });
+    });
+  };
+
+  useEffect(() => {
+    const todosCurso = DatabaseService.getEstudiantes(curso.id);
+    if (asignaturaId) {
+      const filtrados = todosCurso.filter(
+        e => !e.asignaturaIds || e.asignaturaIds.length === 0 || e.asignaturaIds.includes(asignaturaId)
+      );
+      setEstudiantes(ordenarPorApellido(filtrados));
+      setActividades(DatabaseService.getActividades(asignaturaId, periodo));
+    } else {
+      setEstudiantes(ordenarPorApellido(todosCurso));
+      setActividades(DatabaseService.getActividades(curso.id, periodo));
+    }
+    setCalificaciones(DatabaseService.getCalificaciones());
+  }, [curso.id, periodo, asignaturaId, refresh]);
+
+  const getNota = (estudianteId: string, actividadId: string): Calificacion | undefined =>
+    calificaciones.find(c => c.estudianteId === estudianteId && c.actividadId === actividadId);
+
+  const handleCeldaClick = (estudianteId: string, actividadId: string) => {
+    const cal = getNota(estudianteId, actividadId);
+    setCeldaEditando({
+      estudianteId,
+      actividadId,
+      valorActual: cal ? String(cal.nota) : '',
+    });
+  };
+
+  const handleCeldaGuardar = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!celdaEditando) return;
+    if (e.key === 'Enter' || e.key === 'Escape' || e.key === 'Tab') {
+      const nota = parseFloat(celdaEditando.valorActual);
+      if (!isNaN(nota)) {
+        DatabaseService.saveCalificacionesLote([{
+          estudianteId: celdaEditando.estudianteId,
+          actividadId: celdaEditando.actividadId,
+          nota: Math.min(config.maxNota, Math.max(config.minNota, nota)),
+        }]);
+      }
+      setCeldaEditando(null);
+      setRefresh(r => r + 1);
+      onRefresh?.();
+    }
+  };
+
+  const handleCeldaBlur = () => {
+    if (!celdaEditando) return;
+    const nota = parseFloat(celdaEditando.valorActual);
+    if (!isNaN(nota)) {
+      DatabaseService.saveCalificacionesLote([{
+        estudianteId: celdaEditando.estudianteId,
+        actividadId: celdaEditando.actividadId,
+        nota: Math.min(config.maxNota, Math.max(config.minNota, nota)),
+      }]);
+    }
+    setCeldaEditando(null);
+    setRefresh(r => r + 1);
+    onRefresh?.();
+  };
+
+  // Promedio de notas de un estudiante en una categoría
+  const promCat = (estudianteId: string, catId: string): number | null => {
+    const actsDeCategoria = actividades.filter(a => a.categoriaId === catId);
+    const notas = actsDeCategoria
+      .map(a => getNota(estudianteId, a.id)?.nota)
+      .filter((n): n is number => n !== undefined);
+    if (notas.length === 0) return null;
+    return notas.reduce((a, b) => a + b, 0) / notas.length;
+  };
+
+  // Promedio final ponderado del estudiante en el periodo
+  const promFinal = (estudianteId: string): number | null => {
+    let suma = 0, pesoTotal = 0;
+    for (const cat of categorias) {
+      const p = promCat(estudianteId, cat.id);
+      if (p !== null) {
+        suma += p * (cat.pesoPorcentaje / 100);
+        pesoTotal += cat.pesoPorcentaje;
+      }
+    }
+    if (pesoTotal === 0) return null;
+    return (suma / (pesoTotal / 100));
+  };
+
+  const getNotaColor = (nota: number | null): string => {
+    if (nota === null) return '';
+    if (nota >= config.notaAprobatoria) return 'text-emerald-400';
+    if (nota >= config.notaAprobatoria * 0.85) return 'text-amber-400';
+    return 'text-rose-400';
+  };
+
+  const getNotaBg = (nota: number | null): string => {
+    if (nota === null) return '';
+    if (nota >= config.notaAprobatoria) return 'bg-emerald-500/20 text-emerald-300';
+    if (nota >= config.notaAprobatoria * 0.85) return 'bg-amber-500/20 text-amber-300';
+    return 'bg-rose-500/20 text-rose-300';
+  };
+
+  // Promedio general de una actividad (columna)
+  const promActividad = (actividadId: string): number | null => {
+    const notas = estudiantes
+      .map(e => getNota(e.id, actividadId)?.nota)
+      .filter((n): n is number => n !== undefined);
+    if (notas.length === 0) return null;
+    return notas.reduce((a, b) => a + b, 0) / notas.length;
+  };
+
+  // Promedio general categoría (columna DEF)
+  const promDefCat = (catId: string): number | null => {
+    const notas = estudiantes.map(e => promCat(e, catId)).filter((n): n is number => n !== null);
+    // TS fix:
+    const promCatFixed = (estudianteId: string, cid: string) => promCat(estudianteId, cid);
+    const notas2 = estudiantes
+      .map(e => promCatFixed(e.id, catId))
+      .filter((n): n is number => n !== null);
+    if (notas2.length === 0) return null;
+    return notas2.reduce((a, b) => a + b, 0) / notas2.length;
+  };
+
+  if (estudiantes.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-slate-500">
+        <p className="text-lg font-semibold">Sin estudiantes en este curso</p>
+        <p className="text-sm mt-1">Agrega estudiantes desde el apartado "Estudiantes"</p>
+      </div>
+    );
+  }
+
+  if (actividades.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-slate-500">
+        <p className="text-lg font-semibold">Sin actividades en el Periodo {periodo}</p>
+        <p className="text-sm mt-1">Crea actividades desde el apartado "Actividades"</p>
+      </div>
+    );
+  }
+
+  const categoriasCon = categorias.filter(cat => actividades.some(a => a.categoriaId === cat.id));
+
+  return (
+    <>
+      <div className="planilla-container rounded-xl border border-slate-700 overflow-auto max-h-[calc(100vh-220px)]">
+        <table className="border-collapse text-xs" style={{ minWidth: 'max-content' }}>
+          <thead>
+            {/* Fila 1: grupos de categorías */}
+            <tr>
+              <th className="sticky-col bg-slate-900 border-b border-r border-slate-700 px-2 py-2 text-center text-slate-400 font-semibold w-8">#</th>
+              <th className="sticky-col-2 bg-slate-900 border-b border-r border-slate-700 px-3 py-2 text-left text-slate-300 font-semibold min-w-[160px]">Estudiante</th>
+              {categoriasCon.map(cat => {
+                const actsDeCategoria = actividades.filter(a => a.categoriaId === cat.id);
+                return (
+                  <th
+                    key={cat.id}
+                    colSpan={actsDeCategoria.length + 1} // +1 por DEF
+                    className="border-b border-r border-slate-700 px-2 py-1.5 text-center font-bold uppercase tracking-wide"
+                    style={{ backgroundColor: cat.color + '33', color: cat.color }}
+                  >
+                    {cat.nombre} ({cat.pesoPorcentaje}%)
+                  </th>
+                );
+              })}
+              <th className="border-b border-slate-700 px-3 py-1.5 text-center font-bold text-purple-300 bg-purple-500/20 min-w-[70px]">
+                FINAL
+              </th>
+            </tr>
+
+            {/* Fila 2: nombres de actividades */}
+            <tr className="bg-slate-800/50">
+              <th className="sticky-col bg-slate-800 border-b border-r border-slate-700 px-2 py-2"></th>
+              <th className="sticky-col-2 bg-slate-800 border-b border-r border-slate-700 px-3 py-2 text-slate-400 text-left">Apellido, Nombre</th>
+              {categoriasCon.map(cat => {
+                const actsDeCategoria = actividades.filter(a => a.categoriaId === cat.id);
+                return (
+                  <React.Fragment key={cat.id}>
+                    {actsDeCategoria.map((act, idx) => (
+                      <th
+                        key={act.id}
+                        className="border-b border-r border-slate-700 px-2 py-1 text-center text-slate-300 font-medium max-w-[64px]"
+                        title={`${act.titulo}\n${act.descripcion || ''}\nFecha: ${act.fechaActividad}`}
+                      >
+                        <span className="block truncate max-w-[60px]" title={act.titulo}>
+                          #{idx + 1}
+                        </span>
+                        <span className="block text-slate-500 font-normal truncate max-w-[60px]" title={act.titulo}>
+                          {act.titulo.slice(0, 8)}
+                        </span>
+                      </th>
+                    ))}
+                    <th className="border-b border-r border-slate-700 px-2 py-1 text-center font-bold text-slate-200 bg-slate-700/50">
+                      DEF
+                    </th>
+                  </React.Fragment>
+                );
+              })}
+              <th className="border-b border-slate-700 px-2 py-1 text-center font-bold text-purple-300 bg-purple-500/10">∑</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {/* Fila de promedios del curso (cabecera de promedios) */}
+            <tr className="bg-slate-800 border-b border-slate-700">
+              <td className="sticky-col bg-slate-800 border-r border-slate-700 px-2 py-1.5 text-slate-500 text-center font-bold">x̄</td>
+              <td className="sticky-col-2 bg-slate-800 border-r border-slate-700 px-3 py-1.5 text-slate-400 font-semibold italic">Promedio del curso</td>
+              {categoriasCon.map(cat => {
+                const actsDeCategoria = actividades.filter(a => a.categoriaId === cat.id);
+                return (
+                  <React.Fragment key={cat.id}>
+                    {actsDeCategoria.map(act => {
+                      const p = promActividad(act.id);
+                      return (
+                        <td key={act.id} className={`border-r border-slate-700 px-2 py-1.5 text-center font-bold ${getNotaColor(p)}`}>
+                          {p !== null ? p.toFixed(1) : '—'}
+                        </td>
+                      );
+                    })}
+                    <td className="border-r border-slate-700 px-2 py-1.5 text-center font-bold bg-slate-700/40">
+                      <span className={getNotaColor(promDefCat(cat.id))}>
+                        {promDefCat(cat.id) !== null ? promDefCat(cat.id)!.toFixed(1) : '—'}
+                      </span>
+                    </td>
+                  </React.Fragment>
+                );
+              })}
+              <td className="px-2 py-1.5 text-center font-bold bg-purple-500/10 text-purple-300">
+                {(() => {
+                  const finals = estudiantes.map(e => promFinal(e.id)).filter((n): n is number => n !== null);
+                  if (finals.length === 0) return '—';
+                  return (finals.reduce((a, b) => a + b, 0) / finals.length).toFixed(2);
+                })()}
+              </td>
+            </tr>
+
+            {/* Filas de estudiantes */}
+            {estudiantes.map((est, idx) => {
+              const finalEst = promFinal(est.id);
+              return (
+                <tr key={est.id} className="border-b border-slate-700/50 hover:bg-slate-800/60 transition-colors group">
+                  <td className="sticky-col bg-slate-900 group-hover:bg-slate-800/60 border-r border-slate-700 px-2 py-1.5 text-center text-slate-500 font-mono">
+                    {idx + 1}
+                  </td>
+                  <td
+                    className="sticky-col-2 bg-slate-900 group-hover:bg-slate-800/60 border-r border-slate-700 px-3 py-1.5 text-slate-200 font-medium cursor-pointer hover:text-sky-400 transition-colors"
+                    onClick={() => setFichaEstudianteId(est.id)}
+                    title="Ver ficha completa del estudiante"
+                  >
+                    {est.apellido}, {est.nombre}
+                    <span className="text-slate-500 text-xs ml-2">{est.codigo}</span>
+                  </td>
+
+                  {categoriasCon.map(cat => {
+                    const actsDeCategoria = actividades.filter(a => a.categoriaId === cat.id);
+                    const pCat = promCat(est.id, cat.id);
+                    return (
+                      <React.Fragment key={cat.id}>
+                        {actsDeCategoria.map(act => {
+                          const cal = getNota(est.id, act.id);
+                          const isEditing = celdaEditando?.estudianteId === est.id && celdaEditando?.actividadId === act.id;
+
+                          return (
+                            <td
+                              key={act.id}
+                              className="border-r border-slate-700/50 px-1 py-1 text-center cursor-pointer"
+                              onClick={() => !isEditing && handleCeldaClick(est.id, act.id)}
+                              title={`${act.titulo}\n${est.nombre} ${est.apellido}`}
+                            >
+                              {isEditing ? (
+                                <input
+                                  type="number"
+                                  value={celdaEditando.valorActual}
+                                  onChange={e => setCeldaEditando({ ...celdaEditando, valorActual: e.target.value })}
+                                  onKeyDown={handleCeldaGuardar}
+                                  onBlur={handleCeldaBlur}
+                                  min={config.minNota}
+                                  max={config.maxNota}
+                                  step="0.1"
+                                  autoFocus
+                                  className="w-14 text-center bg-sky-900 border border-sky-500 rounded text-sky-200 text-xs py-0.5 outline-none"
+                                />
+                              ) : (
+                                <span className={`inline-block w-12 py-0.5 rounded text-xs font-semibold ${cal ? getNotaBg(cal.nota) : 'text-slate-600 hover:bg-slate-700/50 hover:text-slate-400'}`}>
+                                  {cal ? cal.nota.toFixed(1) : '·'}
+                                </span>
+                              )}
+                            </td>
+                          );
+                        })}
+                        {/* DEF de la categoría */}
+                        <td
+                          className="border-r border-slate-700 px-2 py-1.5 text-center font-bold cursor-pointer bg-slate-800/40 hover:bg-slate-700/40"
+                          onClick={() => setFichaEstudianteId(est.id)}
+                        >
+                          <span className={`text-sm ${getNotaColor(pCat)}`}>
+                            {pCat !== null ? pCat.toFixed(1) : '—'}
+                          </span>
+                        </td>
+                      </React.Fragment>
+                    );
+                  })}
+
+                  {/* Promedio final del periodo */}
+                  <td
+                    className="px-2 py-1.5 text-center cursor-pointer bg-purple-500/10 hover:bg-purple-500/20"
+                    onClick={() => setFichaEstudianteId(est.id)}
+                  >
+                    <span className={`text-sm font-black ${getNotaBg(finalEst)} px-2 py-0.5 rounded`}>
+                      {finalEst !== null ? finalEst.toFixed(2) : '—'}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <FichaEstudiante
+        estudianteId={fichaEstudianteId}
+        cursoId={curso.id}
+        onClose={() => setFichaEstudianteId(null)}
+      />
+    </>
+  );
+};

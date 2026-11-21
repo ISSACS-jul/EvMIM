@@ -1,0 +1,26 @@
+services:
+  evaluador-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: evaluador_tauri_dev
+    working_dir: /app
+    volumes:
+      # Sincroniza el código fuente local con el contenedor
+      - .:/app
+      # Cache de Cargo y Node para que no se descargue todo en cada reinicio
+      - cargo-cache:/usr/local/cargo/registry
+      - cargo-git-cache:/usr/local/cargo/git
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro # Para poder proyectar la ventana nativa si se usa X11
+    environment:
+      - DISPLAY=${DISPLAY}
+      - WEBKIT_DISABLE_COMPOSITING_MODE=1 # Evita posibles glitches de renderizado WebKit en Docker
+    ports:
+      - "1420:1420"
+      - "5173:5173"
+    stdin_open: true
+    tty: true
+
+volumes:
+  cargo-cache:
+  cargo-git-cache:

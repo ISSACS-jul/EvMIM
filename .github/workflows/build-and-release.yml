@@ -1,0 +1,144 @@
+name: Build & Release v0.1
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            platform: linux
+            artifact_name: Evaluador-v0.1-linux-x86_64.AppImage
+          - os: windows-latest
+            platform: windows
+            artifact_name: Evaluador-v0.1-portable-windows-x64.exe
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Rust Stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      # Dependencias del sistema necesarias para compilar Tauri en Linux
+      - name: Install Linux dependencies (Ubuntu)
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+
+      - name: Install frontend dependencies
+        run: npm install
+
+      # Compilar Frontend y Tauri
+      - name: Build Tauri Application
+        run: npx @tauri-apps/cli build
+
+      # Preparar el archivo .AppImage en Linux
+      - name: Prepare Linux AppImage
+        if: matrix.platform == 'linux'
+        run: |
+          mkdir -p dist-bin
+          APPIMAGE_FILE=$(find src-tauri/target/release/bundle/appimage -name "*.AppImage" | head -n 1)
+          if [ -n "$APPIMAGE_FILE" ]; then
+            cp "$APPIMAGE_FILE" "dist-bin/${{ matrix.artifact_name }}"
+            chmod +x "dist-bin/${{ matrix.artifact_name }}"
+            echo "AppImage listo en dist-bin/${{ matrix.artifact_name }}"
+          else
+            echo "Error: No se encontró el archivo .AppImage"
+            exit 1
+          fi
+
+      # Preparar el ejecutable .exe Portable en Windows
+      - name: Prepare Windows Portable .exe
+        if: matrix.platform == 'windows'
+        shell: bash
+        run: |
+          mkdir -p dist-bin
+          # En Windows, el binario compilado en release es un ejecutable autónomo y portable
+          EXE_FILE="src-tauri/target/release/Evaluador.exe"
+          if [ ! -f "$EXE_FILE" ]; then
+            EXE_FILE=$(find src-tauri/target/release -maxdepth 1 -name "*.exe" ! -name "*build*" ! -name "*setup*" | head -n 1)
+          fi
+          if [ -f "$EXE_FILE" ]; then
+            cp "$EXE_FILE" "dist-bin/${{ matrix.artifact_name }}"
+            echo "Ejecutable portable listo en dist-bin/${{ matrix.artifact_name }}"
+          else
+            echo "Error: No se encontró el ejecutable .exe en src-tauri/target/release"
+            exit 1
+          fi
+
+      # Subir el ejecutable compilado como artefacto de la acción
+      - name: Upload Binary Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: dist-bin/${{ matrix.artifact_name }}
+          retention-days: 30
+
+  # Publicar Release en GitHub automáticamente si se sube un tag v*
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Evaluador ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          files: |
+            release-artifacts/Evaluador-v0.1-linux-x86_64.AppImage/Evaluador-v0.1-linux-x86_64.AppImage
+            release-artifacts/Evaluador-v0.1-portable-windows-x64.exe/Evaluador-v0.1-portable-windows-x64.exe
+          body: |
+            ## Evaluador ${{ github.ref_name }} - Versión Oficial
+            
+            Sistema de Calificaciones y Gestión Académica de Cursos y Notas.
+            
+            ### Descargas disponibles:
+            - **Windows (Portable .exe)**: `Evaluador-v0.1-portable-windows-x64.exe` (No requiere instalación, doble clic y ejecutar)
+            - **Linux (.AppImage)**: `Evaluador-v0.1-linux-x86_64.AppImage` (Ejecutable portable para cualquier distribución de Linux)
