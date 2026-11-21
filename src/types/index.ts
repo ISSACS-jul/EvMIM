@@ -8,6 +8,8 @@ export interface ConfiguracionSistema {
   rangoBajoMax?: number; // Límite superior Desempeño Bajo (ej: 2.9)
   rangoBasicoMax?: number; // Límite superior Desempeño Básico (ej: 3.9)
   rangoAltoMax?: number; // Límite superior Desempeño Alto (ej: 4.5)
+  googleClientId?: string; // Client ID de Google Cloud para respaldo en Google Drive
+  autoBackupDrive?: boolean; // Respaldo automático en Google Drive
 }
 
 export interface CategoriaEvaluacion {
@@ -155,5 +157,23 @@ export interface BackupData {
   calificaciones: Calificacion[];
   evaluacionesProfundas?: EvaluacionProfundaDetalle[];
 }
+
+export interface GoogleDriveAccount {
+  email: string;
+  name: string;
+  picture?: string;
+  accessToken: string;
+  refreshToken?: string;
+  expiresAt: number;
+}
+
+export interface GoogleDriveBackupFile {
+  id: string;
+  name: string;
+  size?: string;
+  createdTime?: string;
+  modifiedTime?: string;
+}
+
 
 
