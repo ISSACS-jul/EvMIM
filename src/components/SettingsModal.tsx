@@ -169,7 +169,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
     setDriveLoading(true);
     setBackupStatus(null);
     try {
-      const acc = await GoogleDriveService.iniciarLogin(clientIdInput);
+      const acc = await GoogleDriveService.iniciarLogin();
       setDriveAccount(acc);
       setBackupStatus(`✓ Conectado exitosamente con Google Drive como ${acc.email}`);
       setTimeout(() => setBackupStatus(null), 4000);
