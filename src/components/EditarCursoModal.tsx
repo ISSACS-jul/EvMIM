@@ -16,14 +16,12 @@ export const EditarCursoModal: React.FC<EditarCursoModalProps> = ({
   curso,
   onSaved,
 }) => {
-  if (!isOpen || !curso) return null;
-
   const anios = DatabaseService.getAnios();
   const config = DatabaseService.getConfiguracion();
 
-  const [nombre, setNombre] = useState(curso.nombre);
-  const [anioId, setAnioId] = useState(curso.anioId || anios[0]?.id || 'anio_2026');
-  const [periodoActual, setPeriodoActual] = useState(curso.periodoActual || 1);
+  const [nombre, setNombre] = useState(curso ? curso.nombre : '');
+  const [anioId, setAnioId] = useState(curso?.anioId || anios[0]?.id || 'anio_2026');
+  const [periodoActual, setPeriodoActual] = useState(curso?.periodoActual || 1);
 
   useEffect(() => {
     if (curso) {
@@ -32,6 +30,8 @@ export const EditarCursoModal: React.FC<EditarCursoModalProps> = ({
       setPeriodoActual(curso.periodoActual || 1);
     }
   }, [curso]);
+
+  if (!isOpen || !curso) return null;
 
   const handleGuardar = () => {
     if (!nombre.trim()) return;
@@ -79,10 +79,10 @@ export const EditarCursoModal: React.FC<EditarCursoModalProps> = ({
               <select
                 value={anioId}
                 onChange={e => setAnioId(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-xl text-sm text-slate-100 focus:ring-2 focus:ring-sky-500 outline-none"
+                className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-xl text-sm text-slate-100 focus:ring-2 focus:ring-sky-500 outline-none cursor-pointer"
               >
                 {anios.map(a => (
-                  <option key={a.id} value={a.id}>
+                  <option key={a.id} value={a.id} className="bg-slate-800 text-slate-100">
                     {a.nombre}
                   </option>
                 ))}
@@ -94,10 +94,10 @@ export const EditarCursoModal: React.FC<EditarCursoModalProps> = ({
               <select
                 value={periodoActual}
                 onChange={e => setPeriodoActual(parseInt(e.target.value))}
-                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-xl text-sm text-slate-100 focus:ring-2 focus:ring-sky-500 outline-none"
+                className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-xl text-sm text-slate-100 focus:ring-2 focus:ring-sky-500 outline-none cursor-pointer"
               >
                 {Array.from({ length: config.periodosCount }, (_, i) => i + 1).map(p => (
-                  <option key={p} value={p}>
+                  <option key={p} value={p} className="bg-slate-800 text-slate-100">
                     Periodo {p}
                   </option>
                 ))}

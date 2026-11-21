@@ -18,8 +18,6 @@ export const IngresarNotasModal: React.FC<IngresarNotasModalProps> = ({
   cursoId,
   asignaturaId,
 }) => {
-  if (!isOpen) return null;
-
   const config = DatabaseService.getConfiguracion();
   const categorias = DatabaseService.getCategorias();
   const categoria = categorias.find(c => c.id === actividad.categoriaId);
@@ -51,6 +49,7 @@ export const IngresarNotasModal: React.FC<IngresarNotasModalProps> = ({
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
+    if (!isOpen) return;
     const califs = DatabaseService.getCalificaciones(actividad.id);
     const map: { [id: string]: { nota: string; obs: string } } = {};
     for (const e of estudiantes) {
@@ -58,6 +57,9 @@ export const IngresarNotasModal: React.FC<IngresarNotasModalProps> = ({
       map[e.id] = { nota: cal ? String(cal.nota) : '', obs: cal?.observaciones || '' };
     }
     setNotas(map);
+  }, [actividad.id, estudiantes.length, isOpen]);
+
+  if (!isOpen) return null;
   }, [actividad.id, estudiantes.length]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, idx: number) => {

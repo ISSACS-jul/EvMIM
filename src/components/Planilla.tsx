@@ -457,11 +457,13 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
         </table>
       </div>
 
-      <FichaEstudiante
-        estudianteId={fichaEstudianteId}
-        cursoId={curso.id}
-        onClose={() => setFichaEstudianteId(null)}
-      />
+      {fichaEstudianteId && (
+        <FichaEstudiante
+          estudianteId={fichaEstudianteId}
+          cursoId={curso.id}
+          onClose={() => setFichaEstudianteId(null)}
+        />
+      )}
     </>
   );
 };

@@ -440,30 +440,38 @@ function App() {
         )}
       </main>
 
-      <SettingsModal
-        isOpen={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        onSaved={refreshAll}
-      />
-      <EstudiantesManager
-        isOpen={estudiantesOpen}
-        onClose={() => setEstudiantesOpen(false)}
-        onChanged={refreshAll}
-      />
-      <EditarCursoModal
-        isOpen={Boolean(cursoParaEditar)}
-        onClose={() => setCursoParaEditar(null)}
-        curso={cursoParaEditar}
-        onSaved={() => {
-          setCursoParaEditar(null);
-          refreshAll();
-        }}
-      />
-      <ExpedienteEstudianteModal
-        isOpen={expedienteOpen}
-        estudianteId={expedienteEstudianteId}
-        onClose={() => setExpedienteOpen(false)}
-      />
+      {settingsOpen && (
+        <SettingsModal
+          isOpen={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          onSaved={refreshAll}
+        />
+      )}
+      {estudiantesOpen && (
+        <EstudiantesManager
+          isOpen={estudiantesOpen}
+          onClose={() => setEstudiantesOpen(false)}
+          onChanged={refreshAll}
+        />
+      )}
+      {cursoParaEditar && (
+        <EditarCursoModal
+          isOpen={Boolean(cursoParaEditar)}
+          onClose={() => setCursoParaEditar(null)}
+          curso={cursoParaEditar}
+          onSaved={() => {
+            setCursoParaEditar(null);
+            refreshAll();
+          }}
+        />
+      )}
+      {expedienteOpen && (
+        <ExpedienteEstudianteModal
+          isOpen={expedienteOpen}
+          estudianteId={expedienteEstudianteId}
+          onClose={() => setExpedienteOpen(false)}
+        />
+      )}
     </div>
   );
 }

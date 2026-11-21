@@ -10,14 +10,13 @@ interface SettingsModalProps {
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onSaved }) => {
-  if (!isOpen) return null;
-
   const [config, setConfig] = useState<ConfiguracionSistema>(DatabaseService.getConfiguracion());
   const [categorias, setCategorias] = useState<CategoriaEvaluacion[]>(DatabaseService.getCategorias());
   const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
   const [backupStatus, setBackupStatus] = useState<string | null>(null);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  if (!isOpen) return null;
 
   const sumaPesosCategorias = categorias.reduce((sum, c) => sum + Number(c.pesoPorcentaje || 0), 0);
   const sumaPesosPeriodos = config.pesosPeriodos.reduce((sum, p) => sum + Number(p || 0), 0);
@@ -240,10 +239,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
               </span>
             </div>
             <div className="flex items-center gap-3 mb-3">
-              <label className="text-xs text-slate-500">Cantidad:</label>
-              <select value={config.periodosCount} onChange={e => handlePeriodosCountChange(parseInt(e.target.value))}
-                className="bg-slate-700 border border-slate-600 rounded-lg px-3 py-1.5 text-sm text-slate-200 outline-none focus:ring-2 focus:ring-sky-500">
-                {[1, 2, 3, 4, 5, 6].map(n => <option key={n} value={n}>{n} periodo{n > 1 ? 's' : ''}</option>)}
+              <label className="text-xs text-slate-400 font-semibold">Cantidad:</label>
+              <select
+                value={config.periodosCount}
+                onChange={e => handlePeriodosCountChange(parseInt(e.target.value))}
+                className="bg-slate-800 border border-slate-600 rounded-xl px-3 py-1.5 text-sm text-slate-100 outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
+              >
+                {[1, 2, 3, 4, 5, 6].map(n => (
+                  <option key={n} value={n} className="bg-slate-800 text-slate-100">
+                    {n} periodo{n > 1 ? 's' : ''}
+                  </option>
+                ))}
               </select>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -316,21 +322,29 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImportarFile}
+              accept=".json,application/json"
+              className="hidden"
+            />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Exportar JSON Ligero */}
               <button
                 type="button"
                 onClick={() => handleExportarBackup(false)}
-                className="p-3 bg-slate-800 hover:bg-slate-750 border border-slate-600 hover:border-sky-500 rounded-xl flex items-center gap-3 transition text-left group"
+                className="h-full min-h-[72px] p-3.5 bg-slate-800 hover:bg-slate-750 border border-slate-700 hover:border-sky-500 rounded-xl flex items-center gap-3 transition text-left group"
               >
-                <div className="w-9 h-9 rounded-lg bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 group-hover:scale-105 transition">
+                <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 group-hover:scale-105 transition flex-shrink-0">
                   <Download className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="text-xs font-bold text-slate-200 group-hover:text-sky-300">
                     Exportar JSON Ligero
                   </div>
-                  <div className="text-[11px] text-slate-500">BD completa sin archivos pesados (Recomendado)</div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">BD completa sin archivos pesados (Recomendado)</div>
                 </div>
               </button>
 
@@ -338,63 +352,52 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
               <button
                 type="button"
                 onClick={() => handleExportarBackup(true)}
-                className="p-3 bg-slate-800 hover:bg-slate-750 border border-slate-600 hover:border-sky-500 rounded-xl flex items-center gap-3 transition text-left group"
+                className="h-full min-h-[72px] p-3.5 bg-slate-800 hover:bg-slate-750 border border-slate-700 hover:border-sky-500 rounded-xl flex items-center gap-3 transition text-left group"
               >
-                <div className="w-9 h-9 rounded-lg bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 group-hover:scale-105 transition">
+                <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 group-hover:scale-105 transition flex-shrink-0">
                   <Download className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="text-xs font-bold text-slate-200 group-hover:text-sky-300">
                     Exportar JSON Completo
                   </div>
-                  <div className="text-[11px] text-slate-500">Incluye adjuntos embebidos en base64</div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">Incluye adjuntos embebidos en base64</div>
                 </div>
               </button>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Descargar archivos para carpeta Adjuntos */}
               <button
                 type="button"
                 onClick={handleDescargarAdjuntos}
-                className="p-3 bg-slate-800 hover:bg-slate-750 border border-slate-600 hover:border-emerald-500 rounded-xl flex items-center gap-3 transition text-left group"
+                className="h-full min-h-[72px] p-3.5 bg-slate-800 hover:bg-slate-750 border border-slate-700 hover:border-emerald-500 rounded-xl flex items-center gap-3 transition text-left group"
               >
-                <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition flex-shrink-0">
                   <Paperclip className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="text-xs font-bold text-slate-200 group-hover:text-emerald-300">
                     Exportar Carpeta "Adjuntos"
                   </div>
-                  <div className="text-[11px] text-slate-500">Descarga los documentos de actividades</div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">Descarga los documentos de actividades</div>
                 </div>
               </button>
 
               {/* Botón Importar */}
-              <div>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleImportarFile}
-                  accept=".json,application/json"
-                  className="hidden"
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full p-3 bg-slate-800 hover:bg-slate-750 border border-slate-600 hover:border-amber-500 rounded-xl flex items-center gap-3 transition text-left group"
-                >
-                  <div className="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition">
-                    <Upload className="w-5 h-5" />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="h-full min-h-[72px] p-3.5 bg-slate-800 hover:bg-slate-750 border border-slate-700 hover:border-amber-500 rounded-xl flex items-center gap-3 transition text-left group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition flex-shrink-0">
+                  <Upload className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-200 group-hover:text-amber-300">
+                    Importar / Restaurar (.json)
                   </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-200 group-hover:text-amber-300">
-                      Importar / Restaurar (.json)
-                    </div>
-                    <div className="text-[11px] text-slate-500">Cargar respaldo de datos existente</div>
-                  </div>
-                </button>
-              </div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">Cargar respaldo de datos existente</div>
+                </div>
+              </button>
             </div>
           </section>
         </div>

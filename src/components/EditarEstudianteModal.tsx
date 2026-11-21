@@ -16,20 +16,18 @@ export const EditarEstudianteModal: React.FC<EditarEstudianteModalProps> = ({
   onClose,
   onSaved,
 }) => {
-  if (!isOpen || !estudiante) return null;
-
   const cursos = DatabaseService.getCursos();
   const anios = DatabaseService.getAnios();
   const todasAsignaturas = DatabaseService.getAsignaturas();
 
-  const [nombre, setNombre] = useState(estudiante.nombre);
-  const [apellido, setApellido] = useState(estudiante.apellido);
-  const [codigo, setCodigo] = useState(estudiante.codigo);
+  const [nombre, setNombre] = useState(estudiante ? estudiante.nombre : '');
+  const [apellido, setApellido] = useState(estudiante ? estudiante.apellido : '');
+  const [codigo, setCodigo] = useState(estudiante ? estudiante.codigo : '');
   const [cursosSeleccionados, setCursosSeleccionados] = useState<string[]>(
-    estudiante.cursoIds || []
+    estudiante?.cursoIds || []
   );
   const [asignaturasSeleccionadas, setAsignaturasSeleccionadas] = useState<string[]>(
-    estudiante.asignaturaIds || []
+    estudiante?.asignaturaIds || []
   );
   const [error, setError] = useState<string | null>(null);
 
@@ -43,6 +41,8 @@ export const EditarEstudianteModal: React.FC<EditarEstudianteModalProps> = ({
       setError(null);
     }
   }, [estudiante]);
+
+  if (!isOpen || !estudiante) return null;
 
   const toggleCurso = (cursoId: string) => {
     if (cursosSeleccionados.includes(cursoId)) {

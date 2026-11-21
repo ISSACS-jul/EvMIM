@@ -18,8 +18,6 @@ export const EstudiantesManager: React.FC<EstudiantesManagerProps> = ({
   cursoFiltro,
   onChanged,
 }) => {
-  if (!isOpen) return null;
-
   const cursos = DatabaseService.getCursos();
   const [todosEstudiantes, setTodosEstudiantes] = useState<Estudiante[]>(
     DatabaseService.getEstudiantes()
@@ -40,6 +38,8 @@ export const EstudiantesManager: React.FC<EstudiantesManagerProps> = ({
   // Estado para editar estudiante existente
   const [estudianteEditando, setEstudianteEditando] = useState<Estudiante | null>(null);
   const [expedienteEstudianteId, setExpedienteEstudianteId] = useState<string | null>(null);
+
+  if (!isOpen) return null;
 
   const refresh = () => {
     setTodosEstudiantes(DatabaseService.getEstudiantes());
@@ -285,12 +285,12 @@ export const EstudiantesManager: React.FC<EstudiantesManagerProps> = ({
                           onChange={ev => {
                             if (ev.target.value) handleAgregarCurso(e.id, ev.target.value);
                           }}
-                          className="text-xs bg-slate-700 border border-slate-600 rounded px-2 py-1 text-slate-200 outline-none"
+                          className="text-xs bg-slate-800 border border-slate-600 rounded-lg px-2 py-1 text-slate-100 outline-none cursor-pointer"
                           defaultValue=""
                         >
-                          <option value="">+ Inscribir a curso...</option>
+                          <option value="" className="bg-slate-800 text-slate-100">+ Inscribir a curso...</option>
                           {cursos.map(c => (
-                            <option key={c.id} value={c.id}>
+                            <option key={c.id} value={c.id} className="bg-slate-800 text-slate-100">
                               {c.nombre}
                             </option>
                           ))}
@@ -323,15 +323,15 @@ export const EstudiantesManager: React.FC<EstudiantesManagerProps> = ({
                   <select
                     value={filtroCursoId}
                     onChange={e => setFiltroCursoId(e.target.value)}
-                    className="h-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-xs text-slate-200 focus:ring-2 focus:ring-sky-500 outline-none cursor-pointer"
+                    className="h-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-xs text-slate-100 focus:ring-2 focus:ring-sky-500 outline-none cursor-pointer"
                   >
-                    <option value="todos">Todos los cursos</option>
+                    <option value="todos" className="bg-slate-800 text-slate-100">Todos los cursos</option>
                     {cursos.map(c => (
-                      <option key={c.id} value={c.id}>
+                      <option key={c.id} value={c.id} className="bg-slate-800 text-slate-100">
                         {c.nombre}
                       </option>
                     ))}
-                    <option value="sin_curso">Sin curso asignado ({sinCurso.length})</option>
+                    <option value="sin_curso" className="bg-slate-800 text-slate-100">Sin curso asignado ({sinCurso.length})</option>
                   </select>
                 </div>
               </div>
@@ -445,13 +445,13 @@ export const EstudiantesManager: React.FC<EstudiantesManagerProps> = ({
                               onChange={e => {
                                 if (e.target.value) handleAgregarCurso(est.id, e.target.value);
                               }}
-                              className="text-xs bg-slate-600 hover:bg-slate-500/80 border border-slate-500 rounded-md px-2 py-0.5 text-slate-200 outline-none cursor-pointer transition"
+                              className="text-xs bg-slate-800 hover:bg-slate-750 border border-slate-600 rounded-lg px-2 py-1 text-slate-100 outline-none cursor-pointer transition"
                             >
-                              <option value="">+ Inscribir en curso...</option>
+                              <option value="" className="bg-slate-800 text-slate-100">+ Inscribir en curso...</option>
                               {cursosDisponiblesParaAgregar.map(c => {
                                 const anioObj = DatabaseService.getAnios().find(a => a.id === c.anioId);
                                 return (
-                                  <option key={c.id} value={c.id}>
+                                  <option key={c.id} value={c.id} className="bg-slate-800 text-slate-100">
                                     {anioObj ? `[Año ${anioObj.nombre}] ` : ''}{c.nombre}
                                   </option>
                                 );

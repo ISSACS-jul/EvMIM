@@ -20,8 +20,6 @@ export const NuevaActividadModal: React.FC<NuevaActividadModalProps> = ({
   actividadParaEditar,
   onDeleted,
 }) => {
-  if (!isOpen) return null;
-
   const categorias = DatabaseService.getCategorias();
   const config = DatabaseService.getConfiguracion();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -65,6 +63,8 @@ export const NuevaActividadModal: React.FC<NuevaActividadModalProps> = ({
       });
     }
   }, [actividadParaEditar, curso.periodoActual, isOpen]);
+
+  if (!isOpen) return null;
 
   const handleArchivoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -163,10 +163,10 @@ export const NuevaActividadModal: React.FC<NuevaActividadModalProps> = ({
               <select
                 value={form.categoriaId}
                 onChange={e => setForm({ ...form, categoriaId: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-sm text-slate-100 focus:ring-2 focus:ring-sky-500 outline-none"
+                className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-xl text-sm text-slate-100 focus:ring-2 focus:ring-sky-500 outline-none cursor-pointer"
               >
                 {categorias.map(c => (
-                  <option key={c.id} value={c.id}>
+                  <option key={c.id} value={c.id} className="bg-slate-800 text-slate-100">
                     {c.nombre} ({c.pesoPorcentaje}%)
                   </option>
                 ))}
@@ -192,10 +192,10 @@ export const NuevaActividadModal: React.FC<NuevaActividadModalProps> = ({
               <select
                 value={form.periodo}
                 onChange={e => setForm({ ...form, periodo: parseInt(e.target.value) })}
-                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-sm text-slate-100 focus:ring-2 focus:ring-sky-500 outline-none"
+                className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-xl text-sm text-slate-100 focus:ring-2 focus:ring-sky-500 outline-none cursor-pointer"
               >
                 {Array.from({ length: config.periodosCount }, (_, i) => i + 1).map(p => (
-                  <option key={p} value={p}>
+                  <option key={p} value={p} className="bg-slate-800 text-slate-100">
                     Periodo {p}
                     {p === curso.periodoActual ? ' (actual)' : ''}
                   </option>

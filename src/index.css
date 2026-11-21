@@ -2,12 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: dark;
+}
+
 body {
   margin: 0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   background-color: #0f172a;
   color: #e2e8f0;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Forzar tema oscuro nativo en selects, inputs y options en WebKitGTK y navegadores */
+select, input, textarea {
+  color-scheme: dark;
+}
+
+select {
+  background-color: #1e293b;
+  color: #f1f5f9;
+  border-color: #475569;
+}
+
+select option {
+  background-color: #1e293b;
+  color: #f1f5f9;
 }
 
 /* Scrollbar oscura */

@@ -636,7 +636,9 @@ export class DatabaseService {
     const todosCursos = this.getCursos();
     const todasAsignaturas = this.getAsignaturas();
 
-    const targetCursoId = cursoId || estudiante.cursoIds[0];
+    const targetCursoId =
+      cursoId ||
+      (estudiante.cursoIds && estudiante.cursoIds.length > 0 ? estudiante.cursoIds[0] : (estudiante.cursoId || ''));
     let curso = todosCursos.find(c => c.id === targetCursoId);
     if (!curso) {
       const asig = todasAsignaturas.find(a => a.id === targetCursoId);

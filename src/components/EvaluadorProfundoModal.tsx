@@ -30,8 +30,6 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
   cursoInicial,
   onSaved,
 }) => {
-  if (!isOpen) return null;
-
   const config = DatabaseService.getConfiguracion();
   const anios = DatabaseService.getAnios();
   const todosCursos = DatabaseService.getCursos();
@@ -302,6 +300,8 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
       onClose();
     }, 1200);
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-2 md:p-5 overflow-y-auto">

@@ -1183,70 +1183,82 @@ export const CursoView: React.FC<CursoViewProps> = ({
         />
       )}
 
-      <NuevaActividadModal
-        isOpen={nuevaActividadOpen}
-        onClose={() => {
-          setNuevaActividadOpen(false);
-          setActividadParaEditar(null);
-        }}
-        onSaved={() => {
-          setNuevaActividadOpen(false);
-          setActividadParaEditar(null);
-          handleRefresh();
-        }}
-        onDeleted={() => {
-          setNuevaActividadOpen(false);
-          setActividadParaEditar(null);
-          handleRefresh();
-        }}
-        curso={{ ...curso, id: currentTargetId, periodoActual: periodo }}
-        actividadParaEditar={actividadParaEditar}
-      />
+      {nuevaActividadOpen && (
+        <NuevaActividadModal
+          isOpen={nuevaActividadOpen}
+          onClose={() => {
+            setNuevaActividadOpen(false);
+            setActividadParaEditar(null);
+          }}
+          onSaved={() => {
+            setNuevaActividadOpen(false);
+            setActividadParaEditar(null);
+            handleRefresh();
+          }}
+          onDeleted={() => {
+            setNuevaActividadOpen(false);
+            setActividadParaEditar(null);
+            handleRefresh();
+          }}
+          curso={{ ...curso, id: currentTargetId, periodoActual: periodo }}
+          actividadParaEditar={actividadParaEditar}
+        />
+      )}
 
-      <EditarCursoModal
-        isOpen={editarCursoOpen}
-        onClose={() => setEditarCursoOpen(false)}
-        curso={curso}
-        onSaved={c => {
-          onCursoUpdated(c);
-          handleRefresh();
-        }}
-      />
+      {editarCursoOpen && (
+        <EditarCursoModal
+          isOpen={editarCursoOpen}
+          onClose={() => setEditarCursoOpen(false)}
+          curso={curso}
+          onSaved={c => {
+            onCursoUpdated(c);
+            handleRefresh();
+          }}
+        />
+      )}
 
-      <EditarEstudianteModal
-        isOpen={estudianteParaEditar !== null}
-        estudiante={estudianteParaEditar}
-        onClose={() => setEstudianteParaEditar(null)}
-        onSaved={() => {
-          setEstudianteParaEditar(null);
-          handleRefresh();
-        }}
-      />
+      {estudianteParaEditar && (
+        <EditarEstudianteModal
+          isOpen={estudianteParaEditar !== null}
+          estudiante={estudianteParaEditar}
+          onClose={() => setEstudianteParaEditar(null)}
+          onSaved={() => {
+            setEstudianteParaEditar(null);
+            handleRefresh();
+          }}
+        />
+      )}
 
-      <FichaEstudiante
-        estudianteId={fichaEstudianteId}
-        cursoId={currentTargetId}
-        onClose={() => setFichaEstudianteId(null)}
-        onUpdated={handleRefresh}
-      />
+      {fichaEstudianteId && (
+        <FichaEstudiante
+          estudianteId={fichaEstudianteId}
+          cursoId={currentTargetId}
+          onClose={() => setFichaEstudianteId(null)}
+          onUpdated={handleRefresh}
+        />
+      )}
 
-      <EstudiantesManager
-        isOpen={estudiantesOpen}
-        onClose={() => setEstudiantesOpen(false)}
-        cursoFiltro={curso}
-        onChanged={handleRefresh}
-      />
+      {estudiantesOpen && (
+        <EstudiantesManager
+          isOpen={estudiantesOpen}
+          onClose={() => setEstudiantesOpen(false)}
+          cursoFiltro={curso}
+          onChanged={handleRefresh}
+        />
+      )}
 
-      <EvaluadorProfundoModal
-        isOpen={evaluadorProfundoOpen}
-        onClose={() => {
-          setEvaluadorProfundoOpen(false);
-          setActividadParaEvaluadorProfundo(null);
-        }}
-        actividadInicial={actividadParaEvaluadorProfundo}
-        cursoInicial={curso}
-        onSaved={handleRefresh}
-      />
+      {evaluadorProfundoOpen && (
+        <EvaluadorProfundoModal
+          isOpen={evaluadorProfundoOpen}
+          onClose={() => {
+            setEvaluadorProfundoOpen(false);
+            setActividadParaEvaluadorProfundo(null);
+          }}
+          actividadInicial={actividadParaEvaluadorProfundo}
+          cursoInicial={curso}
+          onSaved={handleRefresh}
+        />
+      )}
     </div>
   );
 };

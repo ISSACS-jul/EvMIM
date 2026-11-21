@@ -26,8 +26,6 @@ export const ExpedienteEstudianteModal: React.FC<ExpedienteEstudianteModalProps>
   estudianteId: initialEstudianteId,
   onClose,
 }) => {
-  if (!isOpen) return null;
-
   const todosEstudiantes = DatabaseService.getEstudiantes();
   const config = DatabaseService.getConfiguracion();
 
@@ -35,6 +33,8 @@ export const ExpedienteEstudianteModal: React.FC<ExpedienteEstudianteModalProps>
     initialEstudianteId || todosEstudiantes[0]?.id || ''
   );
   const [busqueda, setBusqueda] = useState('');
+
+  if (!isOpen) return null;
 
   const expediente = estudianteSeleccionadoId
     ? DatabaseService.getExpedienteEstudiante(estudianteSeleccionadoId)
@@ -177,10 +177,10 @@ export const ExpedienteEstudianteModal: React.FC<ExpedienteEstudianteModalProps>
           <select
             value={estudianteSeleccionadoId}
             onChange={e => setEstudianteSeleccionadoId(e.target.value)}
-            className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-200 outline-none focus:border-sky-500 max-w-xs cursor-pointer font-medium"
+            className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-100 outline-none focus:border-sky-500 max-w-xs cursor-pointer font-medium"
           >
             {estudiantesFiltrados.map(e => (
-              <option key={e.id} value={e.id}>
+              <option key={e.id} value={e.id} className="bg-slate-800 text-slate-100">
                 {e.apellido}, {e.nombre} ({e.codigo})
               </option>
             ))}
