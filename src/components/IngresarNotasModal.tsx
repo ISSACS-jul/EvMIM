@@ -60,7 +60,6 @@ export const IngresarNotasModal: React.FC<IngresarNotasModalProps> = ({
   }, [actividad.id, estudiantes.length, isOpen]);
 
   if (!isOpen) return null;
-  }, [actividad.id, estudiantes.length]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, idx: number) => {
     if (e.key === 'Enter' || e.key === 'Tab') {
