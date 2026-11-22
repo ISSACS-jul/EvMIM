@@ -9,16 +9,16 @@ export default {
       colors: {
         // ── Fondo IDE ────────────────────────────────────
         base: {
-          950: '#0d1117',   // fondo raíz
-          900: '#161b22',   // paneles primarios
-          800: '#1c2333',   // paneles secundarios / cards
-          700: '#21262d',   // hover de items
-          600: '#30363d',   // bordes
-          500: '#484f58',   // texto deshabilitado / placeholders
-          400: '#8b949e',   // texto secundario
-          300: '#c9d1d9',   // texto normal
-          200: '#e6edf3',   // texto prominente
-          100: '#f0f6fc',   // texto máximo contraste
+          950: '#000000',   // fondo raíz — negro puro
+          900: '#0d0d0d',   // paneles primarios
+          800: '#141414',   // paneles secundarios / cards
+          700: '#1a1a1a',   // hover de items
+          600: '#2a2a2a',   // bordes
+          500: '#4a4a4a',   // texto deshabilitado / placeholders
+          400: '#888888',   // texto secundario
+          300: '#bbbbbb',   // texto normal
+          200: '#e0e0e0',   // texto prominente
+          100: '#f5f5f5',   // texto máximo contraste
         },
         // ── Acento azul (similar al del reference) ───────
         accent: {
