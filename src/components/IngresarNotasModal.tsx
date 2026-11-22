@@ -143,12 +143,12 @@ export const IngresarNotasModal: React.FC<IngresarNotasModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl max-w-2xl w-full p-6 max-h-[90vh] flex flex-col">
+      <div className="bg-base-800 border border-base-600 rounded-2xl shadow-2xl max-w-2xl w-full p-6 max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex justify-between items-start mb-4 border-b border-slate-700 pb-3 flex-shrink-0">
+        <div className="flex justify-between items-start mb-4 border-b border-base-600 pb-3 flex-shrink-0">
           <div className="flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-lg font-bold text-slate-100">{actividad.titulo}</h2>
+              <h2 className="text-lg font-bold text-base-100">{actividad.titulo}</h2>
               {categoria && (
                 <span
                   className="text-xs font-semibold px-2.5 py-0.5 rounded-full"
@@ -158,15 +158,15 @@ export const IngresarNotasModal: React.FC<IngresarNotasModalProps> = ({
                 </span>
               )}
               {asig && (
-                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/40">
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-accent-light/20 text-accent-light border border-accent/40">
                   {asig.nombre}
                 </span>
               )}
             </div>
             {actividad.descripcion && (
-              <p className="text-xs text-slate-500 mt-1">{actividad.descripcion}</p>
+              <p className="text-xs text-base-500 mt-1">{actividad.descripcion}</p>
             )}
-            <div className="flex gap-3 mt-1 text-xs text-slate-600">
+            <div className="flex gap-3 mt-1 text-xs text-base-600">
               <span>Actividad: {actividad.fechaActividad}</span>
               <span>· Calificación: {actividad.fechaCalificacion}</span>
               <span>· Periodo {actividad.periodo}</span>
@@ -176,7 +176,7 @@ export const IngresarNotasModal: React.FC<IngresarNotasModalProps> = ({
             {actividad.archivoAdjuntoNombre && (
               <button
                 onClick={abrirAdjunto}
-                className="inline-flex items-center gap-1 text-xs text-sky-400 hover:text-sky-300 bg-sky-500/10 px-2.5 py-1.5 rounded-lg border border-sky-500/20 transition"
+                className="inline-flex items-center gap-1 text-xs text-accent-light hover:text-accent-light bg-accent-light/10 px-2.5 py-1.5 rounded-lg border border-accent/20 transition"
               >
                 <Paperclip className="w-3.5 h-3.5" />
                 <span className="max-w-[80px] truncate">{actividad.archivoAdjuntoNombre}</span>
@@ -185,7 +185,7 @@ export const IngresarNotasModal: React.FC<IngresarNotasModalProps> = ({
             )}
             <button
               onClick={onClose}
-              className="text-slate-500 hover:text-slate-200 p-1 transition"
+              className="text-base-500 hover:text-base-200 p-1 transition"
             >
               <X className="w-5 h-5" />
             </button>
@@ -199,29 +199,29 @@ export const IngresarNotasModal: React.FC<IngresarNotasModalProps> = ({
             { label: 'Promedio', val: prom },
             { label: 'Escala', val: `${config.minNota} — ${config.maxNota}` },
           ].map(s => (
-            <div key={s.label} className="bg-slate-900/60 p-2.5 rounded-lg text-center">
-              <div className="text-xs text-slate-500">{s.label}</div>
-              <div className="font-bold text-slate-200">{s.val}</div>
+            <div key={s.label} className="bg-base-900/60 p-2.5 rounded-lg text-center">
+              <div className="text-xs text-base-500">{s.label}</div>
+              <div className="font-bold text-base-200">{s.val}</div>
             </div>
           ))}
         </div>
 
-        <p className="text-xs text-slate-500 mb-3 flex-shrink-0 flex items-center justify-between flex-wrap gap-2">
+        <p className="text-xs text-base-500 mb-3 flex-shrink-0 flex items-center justify-between flex-wrap gap-2">
           <span>
-            💡 Presiona <kbd className="bg-slate-700 border border-slate-600 px-1 rounded text-xs text-slate-300">Enter</kbd> o <kbd className="bg-slate-700 border border-slate-600 px-1 rounded text-xs text-slate-300">Tab</kbd> para pasar al siguiente
+            💡 Presiona <kbd className="bg-base-700 border border-base-600 px-1 rounded text-xs text-base-300">Enter</kbd> o <kbd className="bg-base-700 border border-base-600 px-1 rounded text-xs text-base-300">Tab</kbd> para pasar al siguiente
           </span>
-          <span className="flex items-center gap-1 text-sky-400 font-medium">
+          <span className="flex items-center gap-1 text-accent-light font-medium">
             <ClipboardPaste className="w-3.5 h-3.5" />
-            Copia columna en Excel y pega con <kbd className="bg-slate-700 border border-slate-600 px-1.5 py-0.5 rounded text-xs text-sky-200 font-mono">Ctrl+V</kbd>
+            Copia columna en Excel y pega con <kbd className="bg-base-700 border border-base-600 px-1.5 py-0.5 rounded text-xs text-accent-light font-mono">Ctrl+V</kbd>
           </span>
         </p>
 
         {/* Lista de estudiantes */}
         {estudiantes.length === 0 ? (
-          <div className="py-12 text-center text-slate-500 bg-slate-900/40 rounded-xl border border-slate-700/60 my-2">
+          <div className="py-12 text-center text-base-500 bg-base-900/40 rounded-xl border border-base-600/60 my-2">
             <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-40 text-amber-400" />
-            <p className="font-semibold text-slate-300">No hay estudiantes inscritos en este curso o materia.</p>
-            <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+            <p className="font-semibold text-base-300">No hay estudiantes inscritos en este curso o materia.</p>
+            <p className="text-xs text-base-500 mt-1 max-w-md mx-auto">
               Asegúrate de que los estudiantes estén asignados al curso en la pestaña "Estudiantes" y tengan esta asignatura vinculada.
             </p>
           </div>
@@ -234,8 +234,8 @@ export const IngresarNotasModal: React.FC<IngresarNotasModalProps> = ({
                   key={est.id}
                   className={`flex items-center gap-3 p-2.5 rounded-xl border transition ${
                     focusIdx === idx
-                      ? 'border-sky-700/50 bg-sky-500/5'
-                      : 'border-transparent hover:border-slate-700 hover:bg-slate-700/40'
+                      ? 'border-accent-dark/50 bg-accent-light/5'
+                      : 'border-transparent hover:border-base-600 hover:bg-base-700/40'
                   }`}
                 >
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-500 to-sky-700 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
@@ -243,10 +243,10 @@ export const IngresarNotasModal: React.FC<IngresarNotasModalProps> = ({
                     {est.apellido[0]}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-slate-200 truncate">
+                    <div className="text-sm font-semibold text-base-200 truncate">
                       {est.apellido}, {est.nombre}
                     </div>
-                    <div className="text-xs text-slate-500">{est.codigo}</div>
+                    <div className="text-xs text-base-500">{est.codigo}</div>
                   </div>
                   <input
                     ref={el => {
@@ -267,8 +267,8 @@ export const IngresarNotasModal: React.FC<IngresarNotasModalProps> = ({
                     onKeyDown={e => handleKeyDown(e, idx)}
                     onPaste={e => handlePaste(e, idx)}
                     placeholder="Nota"
-                    className={`w-20 text-center px-2 py-1.5 border rounded-lg text-sm font-bold bg-slate-700 focus:ring-2 focus:ring-sky-500 outline-none transition ${
-                      notaVal ? getNotaBg(notaVal) : 'border-slate-600 text-slate-400'
+                    className={`w-20 text-center px-2 py-1.5 border rounded-lg text-sm font-bold bg-base-700 focus:ring-2 focus:ring-accent outline-none transition ${
+                      notaVal ? getNotaBg(notaVal) : 'border-base-600 text-base-400'
                     }`}
                   />
                   <input
@@ -281,7 +281,7 @@ export const IngresarNotasModal: React.FC<IngresarNotasModalProps> = ({
                       }))
                     }
                     placeholder="Observación..."
-                    className="w-40 px-2 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-xs text-slate-300 placeholder-slate-500 focus:ring-2 focus:ring-sky-500 outline-none hidden sm:block"
+                    className="w-40 px-2 py-1.5 bg-base-700 border border-base-600 rounded-lg text-xs text-base-300 placeholder-base-500 focus:ring-2 focus:ring-accent outline-none hidden sm:block"
                   />
                 </div>
               );
@@ -290,15 +290,15 @@ export const IngresarNotasModal: React.FC<IngresarNotasModalProps> = ({
         )}
 
         {/* Footer */}
-        <div className="flex justify-between items-center mt-4 pt-4 border-t border-slate-700 flex-shrink-0">
-          <span className="text-xs text-slate-600">
+        <div className="flex justify-between items-center mt-4 pt-4 border-t border-base-600 flex-shrink-0">
+          <span className="text-xs text-base-600">
             {notasNum.filter(n => n >= config.notaAprobatoria).length} aprobados ·{' '}
             {notasNum.filter(n => n < config.notaAprobatoria).length} reprobados
           </span>
           <div className="flex gap-2">
             <button
               onClick={onClose}
-              className="px-4 py-2 border border-slate-700 rounded-xl text-sm text-slate-400 hover:bg-slate-700 transition"
+              className="px-4 py-2 border border-base-600 rounded-xl text-sm text-base-400 hover:bg-base-700 transition"
             >
               Cancelar
             </button>
@@ -308,7 +308,7 @@ export const IngresarNotasModal: React.FC<IngresarNotasModalProps> = ({
               className={`px-5 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 shadow transition ${
                 guardado
                   ? 'bg-emerald-600 text-white'
-                  : 'bg-sky-600 hover:bg-sky-500 disabled:bg-slate-700 disabled:text-slate-500 text-white'
+                  : 'bg-accent hover:bg-accent-light disabled:bg-base-700 disabled:text-base-500 text-white'
               }`}
             >
               <Save className="w-4 h-4" /> {guardado ? '¡Guardado!' : 'Guardar Notas'}

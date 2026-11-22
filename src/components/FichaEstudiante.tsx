@@ -216,9 +216,9 @@ export const FichaEstudiante: React.FC<FichaEstudianteProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl max-w-4xl w-full p-6 my-4">
+      <div className="bg-base-800 border border-base-600 rounded-2xl shadow-2xl max-w-4xl w-full p-6 my-4">
         {/* Header */}
-        <div className="flex justify-between items-start mb-4 pb-4 border-b border-slate-700">
+        <div className="flex justify-between items-start mb-4 pb-4 border-b border-base-600">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-sky-500 to-sky-700 flex items-center justify-center text-white text-xl font-bold shadow">
               {(estudiante.nombre?.[0] || 'E')}
@@ -226,29 +226,29 @@ export const FichaEstudiante: React.FC<FichaEstudianteProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold text-slate-100">
+                <h2 className="text-xl font-bold text-base-100">
                   {estudiante.apellido}, {estudiante.nombre}
                 </h2>
                 <button
                   type="button"
                   onClick={() => setEditingModalOpen(true)}
-                  className="p-1 text-slate-400 hover:text-sky-400 hover:bg-slate-700/50 rounded-lg transition"
+                  className="p-1 text-base-400 hover:text-accent-light hover:bg-base-700/50 rounded-lg transition"
                   title="Modificar datos del estudiante"
                 >
                   <Edit3 className="w-4 h-4" />
                 </button>
               </div>
-              <p className="text-sm text-slate-500">{estudiante.codigo}</p>
+              <p className="text-sm text-base-500">{estudiante.codigo}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setExpedienteModalOpen(true)}
-              className="px-3 py-1.5 bg-sky-950/80 hover:bg-sky-900 border border-sky-700/60 rounded-xl text-xs font-semibold text-sky-300 flex items-center gap-1.5 transition shadow-sm"
+              className="px-3 py-1.5 bg-base-950/80 hover:bg-accent-dark border border-accent-dark/60 rounded-xl text-xs font-semibold text-accent-light flex items-center gap-1.5 transition shadow-sm"
               title="Consultar historial académico completo a lo largo de los distintos años"
             >
-              <Award className="w-3.5 h-3.5 text-sky-400" />
+              <Award className="w-3.5 h-3.5 text-accent-light" />
               Historial Multianual
             </button>
             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-sm font-semibold ${sc.bg} ${sc.color}`}>
@@ -256,7 +256,7 @@ export const FichaEstudiante: React.FC<FichaEstudianteProps> = ({
             </div>
             <button
               onClick={onClose}
-              className="text-slate-500 hover:text-slate-200 p-1 transition"
+              className="text-base-500 hover:text-base-200 p-1 transition"
             >
               <X className="w-5 h-5" />
             </button>
@@ -265,9 +265,9 @@ export const FichaEstudiante: React.FC<FichaEstudianteProps> = ({
 
         {/* Trayectoria Académica del estudiante (Año tras Año) */}
         {estudianteCursoIds.length > 0 ? (
-          <div className="mb-6 bg-slate-900/60 p-3 rounded-xl border border-slate-700/60">
-            <span className="text-xs text-slate-400 font-semibold flex items-center gap-1.5 mb-2">
-              <BookOpen className="w-3.5 h-3.5 text-sky-400" />
+          <div className="mb-6 bg-base-900/60 p-3 rounded-xl border border-base-600/60">
+            <span className="text-xs text-base-400 font-semibold flex items-center gap-1.5 mb-2">
+              <BookOpen className="w-3.5 h-3.5 text-accent-light" />
               Historial y Trayectoria Académica (Año y Curso):
             </span>
             <div className="flex gap-2 flex-wrap">
@@ -283,8 +283,8 @@ export const FichaEstudiante: React.FC<FichaEstudianteProps> = ({
                     onClick={() => setSelectedCursoId(c.id)}
                     className={`text-xs px-3 py-1.5 rounded-xl font-medium transition flex items-center gap-1.5 border ${
                       isSelected
-                        ? 'bg-sky-600 border-sky-500 text-white shadow font-semibold'
-                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white'
+                        ? 'bg-accent border-accent text-white shadow font-semibold'
+                        : 'bg-base-800 border-base-600 text-base-300 hover:bg-base-700 hover:text-white'
                     }`}
                   >
                     <span className="opacity-70 text-[10px] uppercase font-bold tracking-wider">
@@ -317,60 +317,60 @@ export const FichaEstudiante: React.FC<FichaEstudianteProps> = ({
               )}
             </div>
           )}
-          <div className="p-4 rounded-xl border bg-slate-700/50 border-slate-700 text-slate-300">
-            <div className="text-xs font-medium text-slate-500 mb-1">Actividades</div>
+          <div className="p-4 rounded-xl border bg-base-700/50 border-base-600 text-base-300">
+            <div className="text-xs font-medium text-base-500 mb-1">Actividades</div>
             <div className="text-3xl font-black">{historial.length}</div>
           </div>
-          <div className="p-4 rounded-xl border bg-slate-700/50 border-slate-700 text-slate-300">
-            <div className="text-xs font-medium text-slate-500 mb-1">Escala</div>
+          <div className="p-4 rounded-xl border bg-base-700/50 border-base-600 text-base-300">
+            <div className="text-xs font-medium text-base-500 mb-1">Escala</div>
             <div className="text-xl font-black">
               {config.minNota} — {config.maxNota}
             </div>
-            <div className="text-xs text-slate-500">Aprobatoria: {config.notaAprobatoria}</div>
+            <div className="text-xs text-base-500">Aprobatoria: {config.notaAprobatoria}</div>
           </div>
         </div>
 
         {/* Gráficos */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-          <div className="bg-slate-900/60 rounded-xl p-3 border border-slate-700">
-            <h3 className="text-sm font-semibold text-slate-400 mb-2">Evolución por Periodo</h3>
+          <div className="bg-base-900/60 rounded-xl p-3 border border-base-600">
+            <h3 className="text-sm font-semibold text-base-400 mb-2">Evolución por Periodo</h3>
             <ReactECharts option={lineChartOption} style={{ height: '220px' }} />
           </div>
-          <div className="bg-slate-900/60 rounded-xl p-3 border border-slate-700">
-            <h3 className="text-sm font-semibold text-slate-400 mb-2">Desempeño por Categoría</h3>
+          <div className="bg-base-900/60 rounded-xl p-3 border border-base-600">
+            <h3 className="text-sm font-semibold text-base-400 mb-2">Desempeño por Categoría</h3>
             <ReactECharts option={radarOption} style={{ height: '220px' }} />
           </div>
         </div>
 
         {/* Historial */}
         <div>
-          <h3 className="text-sm font-semibold text-slate-400 mb-3 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-sky-500" /> Historial Cronológico
+          <h3 className="text-sm font-semibold text-base-400 mb-3 flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-accent" /> Historial Cronológico
           </h3>
           <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
             {historial.length === 0 && (
-              <p className="text-sm text-slate-600 text-center py-4">Sin calificaciones registradas.</p>
+              <p className="text-sm text-base-600 text-center py-4">Sin calificaciones registradas.</p>
             )}
             {historial.map(
               (h, idx) =>
                 h && (
                   <div
                     key={idx}
-                    className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-900/60 border border-slate-700/60 hover:border-slate-600 transition"
+                    className="flex items-center gap-3 p-2.5 rounded-xl bg-base-900/60 border border-base-600/60 hover:border-base-600 transition"
                   >
                     <div
                       className="w-2 h-2 rounded-full flex-shrink-0"
                       style={{ backgroundColor: h.categoria?.color || '#64748b' }}
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-slate-200 truncate">
+                      <div className="text-sm font-medium text-base-200 truncate">
                         {h.actividad.titulo}
                       </div>
-                      <div className="text-xs text-slate-500">
+                      <div className="text-xs text-base-500">
                         {h.categoria?.nombre} · P{h.actividad.periodo} · {h.actividad.fechaCalificacion}
                       </div>
                       {h.observaciones && (
-                        <div className="text-xs text-slate-600 italic mt-0.5">
+                        <div className="text-xs text-base-600 italic mt-0.5">
                           "{h.observaciones}"
                         </div>
                       )}

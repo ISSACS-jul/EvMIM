@@ -305,21 +305,21 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-2 md:p-5 overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl max-w-6xl w-full max-h-[94vh] flex flex-col my-auto overflow-hidden">
+      <div className="bg-base-900 border border-base-600 rounded-2xl shadow-2xl max-w-6xl w-full max-h-[94vh] flex flex-col my-auto overflow-hidden">
         {/* Encabezado */}
-        <div className="bg-gradient-to-r from-sky-900 via-slate-800 to-slate-900 px-6 py-4 border-b border-slate-700 flex items-center justify-between flex-shrink-0">
+        <div className="bg-gradient-to-r from-sky-900 via-slate-800 to-slate-900 px-6 py-4 border-b border-base-600 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow">
               <Sparkles className="w-6 h-6" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-slate-100">Evaluador Profundo</h2>
+                <h2 className="text-lg font-bold text-base-100">Evaluador Profundo</h2>
                 <span className="text-[10px] uppercase font-bold tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-md">
                   Análisis & Normalización
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-base-400">
                 Calificación analítica por aciertos, reactivos pregunta por pregunta, ajuste de curvas y anulación de preguntas
               </p>
             </div>
@@ -328,7 +328,7 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-slate-200 rounded-lg hover:bg-slate-700/60 transition"
+              className="p-1.5 text-base-400 hover:text-base-200 rounded-lg hover:bg-base-700/60 transition"
             >
               <X className="w-5 h-5" />
             </button>
@@ -344,11 +344,11 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
         )}
 
         {/* Barra de Selección de Actividad */}
-        <div className="bg-slate-850 px-6 py-3 border-b border-slate-800 flex items-center justify-between flex-wrap gap-3 flex-shrink-0">
+        <div className="bg-slate-850 px-6 py-3 border-b border-base-800 flex items-center justify-between flex-wrap gap-3 flex-shrink-0">
           <div className="flex items-center gap-3 flex-wrap text-xs">
             {/* Selector de Año */}
-            <div className="flex items-center gap-1.5 bg-slate-800 border border-slate-700 px-2.5 py-1.5 rounded-xl">
-              <Calendar className="w-3.5 h-3.5 text-sky-400" />
+            <div className="flex items-center gap-1.5 bg-base-800 border border-base-600 px-2.5 py-1.5 rounded-xl">
+              <Calendar className="w-3.5 h-3.5 text-accent-light" />
               <select
                 value={selectedAnioId}
                 onChange={e => {
@@ -356,10 +356,10 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
                   const cursos = todosCursos.filter(c => c.anioId === e.target.value);
                   if (cursos.length > 0) setSelectedCursoId(cursos[0].id);
                 }}
-                className="bg-transparent text-slate-200 outline-none font-semibold cursor-pointer"
+                className="bg-transparent text-base-200 outline-none font-semibold cursor-pointer"
               >
                 {anios.map(a => (
-                  <option key={a.id} value={a.id} className="bg-slate-800 text-slate-200">
+                  <option key={a.id} value={a.id} className="bg-base-800 text-base-200">
                     Año {a.nombre}
                   </option>
                 ))}
@@ -367,8 +367,8 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
             </div>
 
             {/* Selector de Curso */}
-            <div className="flex items-center gap-1.5 bg-slate-800 border border-slate-700 px-2.5 py-1.5 rounded-xl">
-              <BookOpen className="w-3.5 h-3.5 text-sky-400" />
+            <div className="flex items-center gap-1.5 bg-base-800 border border-base-600 px-2.5 py-1.5 rounded-xl">
+              <BookOpen className="w-3.5 h-3.5 text-accent-light" />
               <select
                 value={selectedCursoId}
                 onChange={e => {
@@ -376,10 +376,10 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
                   const asigs = todasAsignaturas.filter(a => a.cursoId === e.target.value);
                   if (asigs.length > 0) setSelectedAsignaturaId(asigs[0].id);
                 }}
-                className="bg-transparent text-slate-200 outline-none font-semibold cursor-pointer"
+                className="bg-transparent text-base-200 outline-none font-semibold cursor-pointer"
               >
                 {cursosDelAnio.map(c => (
-                  <option key={c.id} value={c.id} className="bg-slate-800 text-slate-200">
+                  <option key={c.id} value={c.id} className="bg-base-800 text-base-200">
                     {c.nombre}
                   </option>
                 ))}
@@ -388,15 +388,15 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
 
             {/* Selector de Asignatura */}
             {asignaturasDelCurso.length > 0 && (
-              <div className="flex items-center gap-1.5 bg-slate-800 border border-slate-700 px-2.5 py-1.5 rounded-xl">
-                <span className="text-slate-400">Materia:</span>
+              <div className="flex items-center gap-1.5 bg-base-800 border border-base-600 px-2.5 py-1.5 rounded-xl">
+                <span className="text-base-400">Materia:</span>
                 <select
                   value={selectedAsignaturaId}
                   onChange={e => setSelectedAsignaturaId(e.target.value)}
-                  className="bg-transparent text-slate-200 outline-none font-semibold cursor-pointer"
+                  className="bg-transparent text-base-200 outline-none font-semibold cursor-pointer"
                 >
                   {asignaturasDelCurso.map(a => (
-                    <option key={a.id} value={a.id} className="bg-slate-800 text-slate-200">
+                    <option key={a.id} value={a.id} className="bg-base-800 text-base-200">
                       {a.nombre}
                     </option>
                   ))}
@@ -405,10 +405,10 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
             )}
 
             {/* Selector de Actividad */}
-            <div className="flex items-center gap-1.5 bg-sky-950/60 border border-sky-600/60 px-3 py-1.5 rounded-xl text-sky-200">
-              <span className="font-semibold text-sky-400">Actividad:</span>
+            <div className="flex items-center gap-1.5 bg-base-950/60 border border-accent/60 px-3 py-1.5 rounded-xl text-accent-light">
+              <span className="font-semibold text-accent-light">Actividad:</span>
               {actividadesDisponibles.length === 0 ? (
-                <span className="italic text-slate-400">Sin actividades creadas</span>
+                <span className="italic text-base-400">Sin actividades creadas</span>
               ) : (
                 <select
                   value={selectedActividadId}
@@ -416,7 +416,7 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
                   className="bg-transparent text-sky-100 font-bold outline-none cursor-pointer max-w-xs truncate"
                 >
                   {actividadesDisponibles.map(act => (
-                    <option key={act.id} value={act.id} className="bg-slate-800 text-slate-200">
+                    <option key={act.id} value={act.id} className="bg-base-800 text-base-200">
                       P{act.periodo} - {act.titulo}
                     </option>
                   ))}
@@ -425,25 +425,25 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
             </div>
           </div>
 
-          <div className="text-xs text-slate-400 flex items-center gap-2">
+          <div className="text-xs text-base-400 flex items-center gap-2">
             <span>{estudiantes.length} estudiantes matriculados</span>
           </div>
         </div>
 
         {/* Panel de Opciones y Configuración de Curva */}
-        <div className="bg-slate-800/70 border-b border-slate-700/80 p-4 px-6 flex-shrink-0 space-y-4">
+        <div className="bg-base-800/70 border-b border-base-600/80 p-4 px-6 flex-shrink-0 space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-4">
             {/* Modos de Calificación */}
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-400">Modo de Ingreso:</span>
-              <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-700">
+              <span className="text-xs font-semibold text-base-400">Modo de Ingreso:</span>
+              <div className="flex bg-base-900 p-1 rounded-xl border border-base-600">
                 <button
                   type="button"
                   onClick={() => setModo('aciertos')}
                   className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition ${
                     modo === 'aciertos'
-                      ? 'bg-sky-600 text-white shadow'
-                      : 'text-slate-400 hover:text-slate-200'
+                      ? 'bg-accent text-white shadow'
+                      : 'text-base-400 hover:text-base-200'
                   }`}
                 >
                   🔢 Total de Aciertos
@@ -453,8 +453,8 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
                   onClick={() => setModo('preguntas')}
                   className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition ${
                     modo === 'preguntas'
-                      ? 'bg-sky-600 text-white shadow'
-                      : 'text-slate-400 hover:text-slate-200'
+                      ? 'bg-accent text-white shadow'
+                      : 'text-base-400 hover:text-base-200'
                   }`}
                 >
                   📋 Pregunta por Pregunta
@@ -464,7 +464,7 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
 
             {/* Total de Preguntas Original */}
             <div className="flex items-center gap-2">
-              <label className="text-xs font-semibold text-slate-300">Total Preguntas de la Prueba:</label>
+              <label className="text-xs font-semibold text-base-300">Total Preguntas de la Prueba:</label>
               <input
                 type="number"
                 min="1"
@@ -474,10 +474,10 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
                   const val = parseInt(e.target.value) || 1;
                   setTotalPreguntasOriginal(Math.max(1, Math.min(100, val)));
                 }}
-                className="w-16 px-2 py-1 bg-slate-900 border border-slate-600 rounded-lg text-sm text-center text-white font-bold outline-none focus:border-sky-500"
+                className="w-16 px-2 py-1 bg-base-900 border border-base-600 rounded-lg text-sm text-center text-white font-bold outline-none focus:border-accent"
               />
-              <span className="text-xs text-slate-500">
-                (Evaluadas: <b className="text-sky-400">{totalPreguntasEvaluadas}</b>
+              <span className="text-xs text-base-500">
+                (Evaluadas: <b className="text-accent-light">{totalPreguntasEvaluadas}</b>
                 {preguntasExcluidas.length > 0 && (
                   <span className="text-amber-400">, {preguntasExcluidas.length} anuladas</span>
                 )}
@@ -487,7 +487,7 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
 
             {/* Bonificación adicional */}
             <div className="flex items-center gap-2">
-              <label className="text-xs font-semibold text-slate-300">Puntos Extra:</label>
+              <label className="text-xs font-semibold text-base-300">Puntos Extra:</label>
               <input
                 type="number"
                 step="0.1"
@@ -495,13 +495,13 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
                 max="5"
                 value={bonificacionPuntos}
                 onChange={e => setBonificacionPuntos(parseFloat(e.target.value) || 0)}
-                className="w-16 px-2 py-1 bg-slate-900 border border-slate-600 rounded-lg text-sm text-center text-white font-bold outline-none focus:border-sky-500"
+                className="w-16 px-2 py-1 bg-base-900 border border-base-600 rounded-lg text-sm text-center text-white font-bold outline-none focus:border-accent"
               />
             </div>
           </div>
 
           {/* Ajuste de Normalización por Referencia (Curva) */}
-          <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-700/80 flex items-center justify-between flex-wrap gap-3">
+          <div className="bg-base-900/80 p-3 rounded-xl border border-base-600/80 flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -510,13 +510,13 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
                   onChange={e => setNormalizacionActiva(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                <div className="w-9 h-5 bg-base-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
               </label>
               <div>
-                <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                <span className="text-xs font-bold text-base-200 flex items-center gap-1.5">
                   <TrendingUp className="w-3.5 h-3.5 text-amber-400" /> Normalizar Notas por Estudiante de Referencia (Curva)
                 </span>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-base-400">
                   Ajusta la escala para que el mejor estudiante obtenga la nota máxima ({config.maxNota}) y escala a los demás proporcionalmente.
                 </p>
               </div>
@@ -524,11 +524,11 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
 
             {normalizacionActiva && (
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400 font-medium">Estudiante de Referencia:</span>
+                <span className="text-xs text-base-400 font-medium">Estudiante de Referencia:</span>
                 <select
                   value={estudianteReferenciaId}
                   onChange={e => setEstudianteReferenciaId(e.target.value)}
-                  className="bg-slate-800 border border-amber-500/60 text-xs text-amber-300 px-3 py-1.5 rounded-lg outline-none font-semibold cursor-pointer"
+                  className="bg-base-800 border border-amber-500/60 text-xs text-amber-300 px-3 py-1.5 rounded-lg outline-none font-semibold cursor-pointer"
                 >
                   <option value="auto">
                     ⭐ Automático: Mejor del Grupo ({mejorAciertoGrupo} aciertos)
@@ -545,16 +545,16 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
         </div>
 
         {/* Resumen KPI en Vivo */}
-        <div className="bg-slate-850 px-6 py-2.5 border-b border-slate-800 flex items-center justify-between text-xs flex-wrap gap-3 flex-shrink-0">
+        <div className="bg-slate-850 px-6 py-2.5 border-b border-base-800 flex items-center justify-between text-xs flex-wrap gap-3 flex-shrink-0">
           <div className="flex items-center gap-4">
-            <span className="text-slate-400">
-              Promedio Resultante: <b className="text-sky-400 text-sm">{promedioGrupo.toFixed(2)}</b>
+            <span className="text-base-400">
+              Promedio Resultante: <b className="text-accent-light text-sm">{promedioGrupo.toFixed(2)}</b>
             </span>
-            <span className="text-slate-400">
+            <span className="text-base-400">
               Aprobados: <b className="text-emerald-400 text-sm">{aprobadosCount}</b> de {estudiantes.length} ({estudiantes.length > 0 ? Math.round((aprobadosCount / estudiantes.length) * 100) : 0}%)
             </span>
-            <span className="text-slate-400">
-              Fórmula activa: <code className="text-slate-300 bg-slate-900 px-1.5 py-0.5 rounded text-[11px] font-mono">
+            <span className="text-base-400">
+              Fórmula activa: <code className="text-base-300 bg-base-900 px-1.5 py-0.5 rounded text-[11px] font-mono">
                 (({config.maxNota} - {config.minNota}) / {normalizacionActiva ? aciertosReferencia : totalPreguntasEvaluadas}) × Aciertos + {config.minNota}
               </code>
             </span>
@@ -568,7 +568,7 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
                   setRespuestasPorPregunta({});
                 }
               }}
-              className="text-slate-400 hover:text-rose-300 text-xs flex items-center gap-1 transition"
+              className="text-base-400 hover:text-rose-300 text-xs flex items-center gap-1 transition"
             >
               <RefreshCw className="w-3 h-3" /> Limpiar Todo
             </button>
@@ -578,15 +578,15 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
         {/* Contenido Central: Tablas según el Modo */}
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
           {estudiantes.length === 0 ? (
-            <div className="text-center py-20 text-slate-500">
+            <div className="text-center py-20 text-base-500">
               <HelpCircle className="w-12 h-12 mx-auto mb-2 opacity-30" />
-              <p className="font-semibold text-slate-400">No hay estudiantes en este curso/materia.</p>
+              <p className="font-semibold text-base-400">No hay estudiantes en este curso/materia.</p>
             </div>
           ) : modo === 'aciertos' ? (
             /* =================== MODO 1: TOTAL DE ACIERTOS =================== */
-            <div className="rounded-xl border border-slate-700/80 overflow-hidden shadow-sm">
+            <div className="rounded-xl border border-base-600/80 overflow-hidden shadow-sm">
               <table className="w-full text-xs text-left">
-                <thead className="bg-slate-800 text-slate-300 uppercase font-bold text-[10px] tracking-wider border-b border-slate-700">
+                <thead className="bg-base-800 text-base-300 uppercase font-bold text-[10px] tracking-wider border-b border-base-600">
                   <tr>
                     <th className="py-3 px-4">Estudiante</th>
                     <th className="py-3 px-3 text-center">Código</th>
@@ -598,7 +598,7 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
                     <th className="py-3 px-3 text-center">Estado</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800 text-slate-300">
+                <tbody className="divide-y divide-slate-800 text-base-300">
                   {estudiantes.map(est => {
                     const aciertos = aciertosPorEstudiante[est.id] ?? 0;
                     const nota = calcularNota(est.id);
@@ -606,8 +606,8 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
                     const aprueba = nota >= config.notaAprobatoria;
 
                     return (
-                      <tr key={est.id} className="hover:bg-slate-800/50 transition">
-                        <td className="py-3 px-4 font-semibold text-slate-200">
+                      <tr key={est.id} className="hover:bg-base-800/50 transition">
+                        <td className="py-3 px-4 font-semibold text-base-200">
                           <div className="flex items-center gap-2.5">
                             <div className="w-7 h-7 rounded-full bg-gradient-to-br from-sky-500 to-sky-700 flex items-center justify-center text-white text-[10px] font-bold shadow">
                               {est.nombre[0]}{est.apellido[0]}
@@ -615,7 +615,7 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
                             <span>{est.apellido}, {est.nombre}</span>
                           </div>
                         </td>
-                        <td className="py-3 px-3 text-center text-slate-400 font-mono">
+                        <td className="py-3 px-3 text-center text-base-400 font-mono">
                           {est.codigo}
                         </td>
                         <td className="py-3 px-4 text-center">
@@ -628,7 +628,7 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
                                   [est.id]: Math.max(0, (prev[est.id] ?? 0) - 1),
                                 }));
                               }}
-                              className="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold flex items-center justify-center"
+                              className="w-6 h-6 rounded bg-base-800 hover:bg-base-700 text-base-300 font-bold flex items-center justify-center"
                             >
                               -
                             </button>
@@ -645,7 +645,7 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
                                   [est.id]: Math.max(0, Math.min(totalPreguntasOriginal, val)),
                                 }));
                               }}
-                              className="w-16 px-2 py-1 bg-slate-900 border border-slate-700 rounded-lg text-sm text-center font-bold text-sky-300 outline-none focus:border-sky-500"
+                              className="w-16 px-2 py-1 bg-base-900 border border-base-600 rounded-lg text-sm text-center font-bold text-accent-light outline-none focus:border-accent"
                             />
                             <button
                               type="button"
@@ -655,14 +655,14 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
                                   [est.id]: Math.min(totalPreguntasOriginal, (prev[est.id] ?? 0) + 1),
                                 }));
                               }}
-                              className="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold flex items-center justify-center"
+                              className="w-6 h-6 rounded bg-base-800 hover:bg-base-700 text-base-300 font-bold flex items-center justify-center"
                             >
                               +
                             </button>
                           </div>
                         </td>
                         <td className="py-3 px-3 text-center font-mono">
-                          <span className={`font-bold ${pct >= 60 ? 'text-emerald-400' : 'text-slate-400'}`}>
+                          <span className={`font-bold ${pct >= 60 ? 'text-emerald-400' : 'text-base-400'}`}>
                             {pct}%
                           </span>
                         </td>
@@ -707,11 +707,11 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
                 </div>
               )}
 
-              <div className="rounded-xl border border-slate-700/80 overflow-x-auto shadow-sm">
+              <div className="rounded-xl border border-base-600/80 overflow-x-auto shadow-sm">
                 <table className="w-full text-xs text-left border-collapse">
-                  <thead className="bg-slate-800 text-slate-300 uppercase font-bold text-[10px] tracking-wider border-b border-slate-700">
+                  <thead className="bg-base-800 text-base-300 uppercase font-bold text-[10px] tracking-wider border-b border-base-600">
                     <tr>
-                      <th className="py-3 px-4 min-w-[180px] sticky left-0 bg-slate-800 z-10">Estudiante</th>
+                      <th className="py-3 px-4 min-w-[180px] sticky left-0 bg-base-800 z-10">Estudiante</th>
                       {Array.from({ length: totalPreguntasOriginal }, (_, i) => i + 1).map(p => {
                         const excluida = preguntasExcluidas.includes(p);
                         const stat = analisisPreguntas.find(a => a.numero === p);
@@ -720,15 +720,15 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
                         return (
                           <th
                             key={p}
-                            className={`py-2 px-1 text-center min-w-[48px] border-l border-slate-700/60 ${
-                              excluida ? 'bg-rose-950/40 text-slate-500 line-through' : ''
+                            className={`py-2 px-1 text-center min-w-[48px] border-l border-base-600/60 ${
+                              excluida ? 'bg-rose-950/40 text-base-500 line-through' : ''
                             }`}
                           >
                             <div className="text-[10px] font-bold">P{p}</div>
                             <div
                               className={`text-[9px] font-mono mt-0.5 ${
                                 excluida
-                                  ? 'text-slate-600'
+                                  ? 'text-base-600'
                                   : pct >= 60
                                   ? 'text-emerald-400'
                                   : pct >= 40
@@ -744,7 +744,7 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
                               className={`mt-1 text-[8px] px-1 py-0.5 rounded transition ${
                                 excluida
                                   ? 'bg-emerald-600/30 text-emerald-300 hover:bg-emerald-600/50'
-                                  : 'bg-slate-700 text-slate-400 hover:text-rose-300 hover:bg-rose-950/50'
+                                  : 'bg-base-700 text-base-400 hover:text-rose-300 hover:bg-rose-950/50'
                               }`}
                               title={excluida ? 'Restaurar pregunta' : 'Anular esta pregunta para el cálculo'}
                             >
@@ -753,12 +753,12 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
                           </th>
                         );
                       })}
-                      <th className="py-3 px-3 text-center min-w-[70px] border-l border-slate-700">Aciertos</th>
+                      <th className="py-3 px-3 text-center min-w-[70px] border-l border-base-600">Aciertos</th>
                       <th className="py-3 px-3 text-center min-w-[80px]">Nota</th>
                       <th className="py-3 px-2 text-center min-w-[70px]">Acciones</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800 text-slate-300">
+                  <tbody className="divide-y divide-slate-800 text-base-300">
                     {estudiantes.map(est => {
                       const respuestas = respuestasPorPregunta[est.id] || {};
                       const aciertos = getAciertosEstudiante(est.id);
@@ -766,8 +766,8 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
                       const aprueba = nota >= config.notaAprobatoria;
 
                       return (
-                        <tr key={est.id} className="hover:bg-slate-800/40 transition">
-                          <td className="py-2.5 px-4 font-semibold text-slate-200 sticky left-0 bg-slate-900 z-10 border-r border-slate-800 truncate max-w-[200px]">
+                        <tr key={est.id} className="hover:bg-base-800/40 transition">
+                          <td className="py-2.5 px-4 font-semibold text-base-200 sticky left-0 bg-base-900 z-10 border-r border-base-800 truncate max-w-[200px]">
                             {est.apellido}, {est.nombre}
                           </td>
 
@@ -778,8 +778,8 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
                             return (
                               <td
                                 key={p}
-                                className={`py-2 px-1 text-center border-l border-slate-800 ${
-                                  excluida ? 'bg-slate-900/60 opacity-40' : ''
+                                className={`py-2 px-1 text-center border-l border-base-800 ${
+                                  excluida ? 'bg-base-900/60 opacity-40' : ''
                                 }`}
                               >
                                 <button
@@ -788,10 +788,10 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
                                   onClick={() => toggleRespuestaPregunta(est.id, p)}
                                   className={`w-7 h-7 rounded-lg text-xs font-bold transition flex items-center justify-center mx-auto ${
                                     excluida
-                                      ? 'text-slate-600 cursor-not-allowed'
+                                      ? 'text-base-600 cursor-not-allowed'
                                       : correcta
                                       ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 shadow-sm'
-                                      : 'bg-slate-800 hover:bg-slate-700 text-slate-600 hover:text-slate-400 border border-slate-700/60'
+                                      : 'bg-base-800 hover:bg-base-700 text-base-600 hover:text-base-400 border border-base-600/60'
                                   }`}
                                   title={excluida ? 'Pregunta anulada' : correcta ? 'Correcta' : 'Incorrecta'}
                                 >
@@ -801,7 +801,7 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
                             );
                           })}
 
-                          <td className="py-2.5 px-3 text-center font-bold text-sky-400 border-l border-slate-800">
+                          <td className="py-2.5 px-3 text-center font-bold text-accent-light border-l border-base-800">
                             {aciertos} / {totalPreguntasEvaluadas}
                           </td>
                           <td className="py-2.5 px-3 text-center">
@@ -820,7 +820,7 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
                               <button
                                 type="button"
                                 onClick={() => marcarTodasPreguntasEstudiante(est.id, true)}
-                                className="p-1 text-slate-400 hover:text-emerald-300 text-[10px] bg-slate-800 rounded"
+                                className="p-1 text-base-400 hover:text-emerald-300 text-[10px] bg-base-800 rounded"
                                 title="Marcar todas correctas"
                               >
                                 ✓ Todos
@@ -838,9 +838,9 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
         </div>
 
         {/* Barra de Acciones y Guardado */}
-        <div className="bg-slate-800/90 px-6 py-3.5 border-t border-slate-700 flex items-center justify-between flex-wrap gap-3 flex-shrink-0">
-          <div className="text-xs text-slate-400 flex items-center gap-2">
-            <Info className="w-4 h-4 text-sky-400" />
+        <div className="bg-base-800/90 px-6 py-3.5 border-t border-base-600 flex items-center justify-between flex-wrap gap-3 flex-shrink-0">
+          <div className="text-xs text-base-400 flex items-center gap-2">
+            <Info className="w-4 h-4 text-accent-light" />
             <span>Al publicar, las notas calculadas se sincronizan de inmediato con la Planilla y Fichas.</span>
           </div>
 
@@ -848,7 +848,7 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
             <button
               type="button"
               onClick={handleGuardarBorrador}
-              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition border border-slate-600"
+              className="px-4 py-2 bg-base-700 hover:bg-base-600 text-base-200 hover:text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition border border-base-600"
             >
               <Save className="w-3.5 h-3.5" /> Guardar Borrador
             </button>

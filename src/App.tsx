@@ -39,24 +39,19 @@ function App() {
   const [expedienteEstudianteId, setExpedienteEstudianteId] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState('');
 
-  // Form nuevo año
   const [mostrarFormAnio, setMostrarFormAnio] = useState(false);
   const [nuevoAnioNombre, setNuevoAnioNombre] = useState('');
-
-  // Form nuevo curso
   const [nuevoCursoNombre, setNuevoCursoNombre] = useState('');
   const [mostrarFormCurso, setMostrarFormCurso] = useState(false);
 
   const refreshAll = () => {
     const listaAnios = DatabaseService.getAnios();
     setAnios(listaAnios);
-
     let anioActivoId = selectedAnioId;
     if (!listaAnios.some(a => a.id === anioActivoId) && listaAnios.length > 0) {
       anioActivoId = listaAnios[0].id;
       setSelectedAnioId(anioActivoId);
     }
-
     setCursos(DatabaseService.getCursos(anioActivoId));
   };
 
@@ -76,11 +71,7 @@ function App() {
   };
 
   const handleEliminarAnio = (id: string, nombre: string) => {
-    if (
-      confirm(
-        `¿Eliminar el Año "${nombre}"? Se eliminarán todos los cursos, asignaturas y actividades asociadas a este año.`
-      )
-    ) {
+    if (confirm(`¿Eliminar el Año "${nombre}"? Se eliminarán todos los cursos, asignaturas y actividades asociadas a este año.`)) {
       DatabaseService.deleteAnio(id);
       refreshAll();
     }
@@ -103,192 +94,161 @@ function App() {
   };
 
   const anioActualObj = anios.find(a => a.id === selectedAnioId) || anios[0];
-
   const cursosFiltrados = cursos.filter(c =>
     c.nombre.toLowerCase().includes(busqueda.toLowerCase())
   );
 
-  /* ---- Vista de un curso específico ---- */
+  /* ── Vista de curso ── */
   if (cursoSeleccionado) {
     return (
-      <div className="h-screen flex flex-col bg-slate-900">
-        <header className="bg-slate-800 border-b border-slate-700 px-5 py-3 flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-2 text-sm">
+      <div className="h-screen flex flex-col bg-base-950">
+        {/* Topbar breadcrumb */}
+        <header className="bg-base-900 border-b border-base-600 px-5 py-2.5 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-1.5 text-sm">
             <button
-              onClick={() => {
-                setCursoSeleccionado(null);
-                refreshAll();
-              }}
-              className="flex items-center gap-1.5 text-sky-400 hover:text-sky-300 font-medium transition"
+              onClick={() => { setCursoSeleccionado(null); refreshAll(); }}
+              className="flex items-center gap-1.5 text-accent-light hover:text-white font-medium transition-colors"
             >
-              <GraduationCap className="w-5 h-5" />
+              <GraduationCap className="w-4 h-4" />
               Mis Cursos
             </button>
-            <ChevronRight className="w-4 h-4 text-slate-600" />
-            <span className="text-slate-400 text-xs">Año {anioActualObj?.nombre || cursoSeleccionado.anio}</span>
-            <ChevronRight className="w-4 h-4 text-slate-600" />
-            <span className="text-slate-200 font-semibold">{cursoSeleccionado.nombre}</span>
+            <ChevronRight className="w-3.5 h-3.5 text-base-500" />
+            <span className="text-base-400 text-xs">{anioActualObj?.nombre || cursoSeleccionado.anio}</span>
+            <ChevronRight className="w-3.5 h-3.5 text-base-500" />
+            <span className="text-base-200 font-semibold">{cursoSeleccionado.nombre}</span>
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => {
-                setExpedienteEstudianteId(null);
-                setExpedienteOpen(true);
-              }}
-              className="flex items-center gap-1.5 text-xs text-sky-300 hover:text-white bg-sky-950/60 hover:bg-sky-900 border border-sky-700/60 px-3 py-1.5 rounded-xl font-semibold transition"
-              title="Consultar historial académico general y expedientes"
+              onClick={() => { setExpedienteEstudianteId(null); setExpedienteOpen(true); }}
+              className="btn-secondary text-xs py-1 px-2.5"
+              title="Expediente académico"
             >
-              <Award className="w-4 h-4 text-sky-400" />
-              Expediente Estudiantes
+              <Award className="w-3.5 h-3.5" />
+              Expediente
             </button>
             <button
               onClick={() => setSettingsOpen(true)}
-              className="p-2 text-slate-500 hover:text-slate-200 hover:bg-slate-700 rounded-lg transition"
+              className="p-1.5 text-base-400 hover:text-base-200 hover:bg-base-700 rounded-md transition-colors"
               title="Configuración"
             >
-              <Settings className="w-5 h-5" />
+              <Settings className="w-4 h-4" />
             </button>
           </div>
         </header>
+
         <div className="flex-1 overflow-hidden">
           <CursoView
             curso={cursoSeleccionado}
             onCursoUpdated={handleCursoUpdated}
-            onCursoDeleted={() => {
-              setCursoSeleccionado(null);
-              refreshAll();
-            }}
+            onCursoDeleted={() => { setCursoSeleccionado(null); refreshAll(); }}
           />
         </div>
-        <SettingsModal
-          isOpen={settingsOpen}
-          onClose={() => setSettingsOpen(false)}
-          onSaved={refreshAll}
-        />
-        <ExpedienteEstudianteModal
-          isOpen={expedienteOpen}
-          estudianteId={expedienteEstudianteId}
-          onClose={() => setExpedienteOpen(false)}
-        />
+
+        <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} onSaved={refreshAll} />
+        <ExpedienteEstudianteModal isOpen={expedienteOpen} estudianteId={expedienteEstudianteId} onClose={() => setExpedienteOpen(false)} />
       </div>
     );
   }
 
-  /* ---- Pantalla inicio: lista de años y cursos ---- */
+  /* ── Pantalla inicio ── */
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="min-h-screen bg-base-950">
+
       {/* Topbar */}
-      <header className="bg-slate-800 border-b border-slate-700 px-6 py-3.5 flex items-center justify-between">
+      <header className="bg-base-900 border-b border-base-600 px-5 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="bg-sky-600 text-white w-9 h-9 rounded-xl flex items-center justify-center shadow">
-            <GraduationCap className="w-5 h-5" />
+          <div className="bg-accent w-8 h-8 rounded-md flex items-center justify-center shadow">
+            <GraduationCap className="w-4 h-4 text-white" />
           </div>
           <div>
-            <h1 className="font-bold text-slate-100 text-base leading-none">Evaluador</h1>
-            <p className="text-xs text-slate-500 leading-none mt-0.5">Gestión Académica de Cursos y Notas</p>
+            <h1 className="font-bold text-base-100 text-sm leading-none tracking-tight">Evaluador</h1>
+            <p className="text-xs text-base-500 leading-none mt-0.5">Gestión Académica</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <button
-            onClick={() => {
-              setExpedienteEstudianteId(null);
-              setExpedienteOpen(true);
-            }}
-            className="flex items-center gap-1.5 text-xs text-sky-300 hover:text-white bg-sky-950/60 hover:bg-sky-900 border border-sky-700/60 px-3.5 py-2 rounded-xl font-semibold transition shadow-sm"
-            title="Consultar expediente general de estudiantes"
+            onClick={() => { setExpedienteEstudianteId(null); setExpedienteOpen(true); }}
+            className="btn-secondary text-xs py-1 px-2.5"
           >
-            <Award className="w-4 h-4 text-sky-400" />
-            Expediente General
+            <Award className="w-3.5 h-3.5" />
+            Expediente
           </button>
           <button
             onClick={() => setEstudiantesOpen(true)}
-            className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-100 hover:bg-slate-700 px-3 py-2 rounded-lg transition"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs text-base-400 hover:text-base-200 hover:bg-base-700 transition-colors"
           >
-            <Users className="w-4 h-4" />
+            <Users className="w-3.5 h-3.5" />
             Estudiantes
           </button>
           <button
             onClick={() => setSettingsOpen(true)}
-            className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-100 hover:bg-slate-700 px-3 py-2 rounded-lg transition"
+            className="p-1.5 text-base-400 hover:text-base-200 hover:bg-base-700 rounded-md transition-colors"
           >
             <Settings className="w-4 h-4" />
-            Configuración
           </button>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-5 py-7">
-        {/* BARRA DE SELECCIÓN Y CREACIÓN DE AÑOS LECTIVOS */}
-        <div className="mb-7 bg-slate-800/80 border border-slate-700 p-4 rounded-2xl shadow-sm">
+      <main className="max-w-3xl mx-auto px-5 py-6">
+
+        {/* Selector de Año Lectivo */}
+        <div className="mb-5 card p-4">
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2 text-sm font-bold text-slate-200">
-              <Calendar className="w-4 h-4 text-sky-400" />
-              Año Lectivo:
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-base-300 uppercase tracking-wider">
+              <Calendar className="w-3.5 h-3.5 text-accent-light" />
+              Año Lectivo
             </div>
             {!mostrarFormAnio && (
               <button
                 onClick={() => setMostrarFormAnio(true)}
-                className="text-xs text-sky-400 hover:text-sky-300 font-medium flex items-center gap-1 transition"
+                className="inline-flex items-center gap-1 text-xs text-accent-light hover:text-white transition-colors"
               >
-                <Plus className="w-3.5 h-3.5" /> Crear Año
+                <Plus className="w-3 h-3" /> Nuevo año
               </button>
             )}
           </div>
 
-          {/* Formulario rápido para nuevo año */}
           {mostrarFormAnio && (
-            <div className="flex gap-2 mb-3 bg-slate-700/60 p-2.5 rounded-xl border border-sky-500/50">
+            <div className="flex gap-2 mb-3">
               <input
                 type="text"
                 value={nuevoAnioNombre}
                 onChange={e => setNuevoAnioNombre(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleCrearAnio()}
-                placeholder="Nombre del año (ej: 2026, 2027, 2026-2027)..."
-                className="flex-1 px-3 py-1.5 bg-slate-800 text-xs text-slate-100 rounded-lg outline-none"
+                placeholder="Ej: 2026-2027"
+                className="input-ide flex-1 text-xs"
                 autoFocus
               />
-              <button
-                onClick={handleCrearAnio}
-                disabled={!nuevoAnioNombre.trim()}
-                className="px-3 py-1 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1"
-              >
-                <Check className="w-3.5 h-3.5" /> Crear
+              <button onClick={handleCrearAnio} disabled={!nuevoAnioNombre.trim()} className="btn-primary text-xs py-1 px-3">
+                <Check className="w-3 h-3" /> Crear
               </button>
-              <button
-                onClick={() => setMostrarFormAnio(false)}
-                className="px-2 py-1 text-slate-400 hover:text-slate-200 text-xs"
-              >
+              <button onClick={() => setMostrarFormAnio(false)} className="text-xs text-base-400 hover:text-base-200 px-2">
                 Cancelar
               </button>
             </div>
           )}
 
-          {/* Pestañas de Años */}
-          <div className="flex gap-2 flex-wrap items-center">
+          <div className="flex gap-2 flex-wrap">
             {anios.map(a => {
               const activo = a.id === selectedAnioId;
               return (
                 <div
                   key={a.id}
-                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition border ${
+                  className={`inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs font-semibold border transition-colors ${
                     activo
-                      ? 'bg-sky-600 border-sky-500 text-white shadow'
-                      : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'
+                      ? 'bg-accent text-white border-accent'
+                      : 'bg-base-700 border-base-600 text-base-300 hover:border-base-500'
                   }`}
                 >
                   <button onClick={() => handleSeleccionarAnio(a.id)}>
-                    Año {a.nombre}
+                    {a.nombre}
                   </button>
-
                   {anios.length > 1 && (
                     <button
                       onClick={() => handleEliminarAnio(a.id, a.nombre)}
-                      className={`p-0.5 rounded hover:bg-black/20 ${
-                        activo ? 'text-sky-200 hover:text-rose-200' : 'text-slate-400 hover:text-rose-400'
-                      }`}
-                      title={`Eliminar año ${a.nombre}`}
+                      className={`ml-1 rounded hover:opacity-70 ${activo ? 'text-white/70' : 'text-base-500'}`}
                     >
-                      <X className="w-3 h-3" />
+                      <X className="w-2.5 h-2.5" />
                     </button>
                   )}
                 </div>
@@ -297,83 +257,81 @@ function App() {
           </div>
         </div>
 
-        {/* Búsqueda + botón nuevo curso */}
-        <div className="flex gap-3 mb-5">
+        {/* Búsqueda + nuevo curso */}
+        <div className="flex gap-2 mb-4">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-base-500" />
             <input
               type="text"
               value={busqueda}
               onChange={e => setBusqueda(e.target.value)}
-              placeholder={`Buscar curso en Año ${anioActualObj?.nombre || ''}...`}
-              className="w-full pl-9 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none shadow-sm"
+              placeholder={`Buscar en Año ${anioActualObj?.nombre || ''}…`}
+              className="input-ide pl-8"
             />
           </div>
           <button
             onClick={() => setMostrarFormCurso(true)}
-            className="inline-flex items-center gap-1.5 bg-sky-600 hover:bg-sky-500 text-white px-4 py-2.5 rounded-xl text-sm font-medium shadow transition"
+            className="btn-primary"
           >
-            <Plus className="w-4 h-4" /> Nuevo Curso
+            <Plus className="w-3.5 h-3.5" /> Nuevo Curso
           </button>
         </div>
 
         {/* Formulario nuevo curso */}
         {mostrarFormCurso && (
-          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-5 mb-5 shadow">
+          <div className="card p-4 mb-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold text-slate-200">
-                Nuevo Curso en Año {anioActualObj?.nombre}
-              </h3>
-              <button
-                onClick={() => setMostrarFormCurso(false)}
-                className="text-slate-500 hover:text-slate-300"
-              >
-                <X className="w-4 h-4" />
+              <span className="text-xs font-semibold text-base-300">Nuevo Curso — Año {anioActualObj?.nombre}</span>
+              <button onClick={() => setMostrarFormCurso(false)} className="text-base-500 hover:text-base-300">
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               <input
                 type="text"
                 value={nuevoCursoNombre}
                 onChange={e => setNuevoCursoNombre(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleCrearCurso()}
-                placeholder="Ej: Séptimo A, Octavo, Noveno, Décimo B..."
-                className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-sky-500 outline-none"
+                placeholder="Ej: Séptimo A, Octavo, Décimo B…"
+                className="input-ide flex-1"
                 autoFocus
               />
               <button
                 onClick={handleCrearCurso}
                 disabled={!nuevoCursoNombre.trim()}
-                className="px-5 py-2 bg-sky-600 hover:bg-sky-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-xl text-sm font-semibold transition"
+                className="btn-primary disabled:opacity-40"
               >
-                Crear Curso
+                Crear
               </button>
             </div>
           </div>
         )}
 
-        {/* Lista de cursos del año seleccionado */}
-        <div className="mb-3 flex items-center justify-between text-xs text-slate-400 font-semibold uppercase tracking-wider">
-          <span>Cursos / Grados — Año {anioActualObj?.nombre}</span>
-          <span>{cursosFiltrados.length} curso(s)</span>
+        {/* Encabezado lista */}
+        <div className="flex items-center justify-between mb-2 px-1">
+          <span className="text-xs font-semibold text-base-500 uppercase tracking-wider">
+            Cursos — {anioActualObj?.nombre}
+          </span>
+          <span className="text-xs text-base-500">{cursosFiltrados.length} curso(s)</span>
         </div>
 
+        {/* Lista de cursos */}
         {cursosFiltrados.length === 0 ? (
-          <div className="text-center py-20 bg-slate-800/40 border border-slate-800 rounded-2xl text-slate-600">
-            <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-20" />
-            <p className="font-semibold text-slate-500">
+          <div className="text-center py-16 card">
+            <BookOpen className="w-10 h-10 mx-auto mb-3 text-base-600" />
+            <p className="text-sm text-base-500 font-medium">
               {busqueda
-                ? `No se encontró "${busqueda}" en este año`
-                : `No hay cursos registrados en el Año ${anioActualObj?.nombre}`}
+                ? `Sin resultados para "${busqueda}"`
+                : `No hay cursos en el Año ${anioActualObj?.nombre}`}
             </p>
             {!busqueda && (
-              <p className="text-sm mt-1 text-slate-600">
-                Crea cursos (como Séptimo, Octavo, Noveno...) con el botón "+ Nuevo Curso".
+              <p className="text-xs text-base-600 mt-1">
+                Usa "+ Nuevo Curso" para agregar el primero.
               </p>
             )}
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-1.5">
             {cursosFiltrados.map(curso => {
               const estudiantesCurso = DatabaseService.getEstudiantes(curso.id);
               const asignaturasCurso = DatabaseService.getAsignaturas(curso.id);
@@ -383,56 +341,51 @@ function App() {
                 <div
                   key={curso.id}
                   onClick={() => setCursoSeleccionado(curso)}
-                  className="flex items-center gap-4 bg-slate-800 hover:bg-slate-700/80 p-4 rounded-2xl border border-slate-700 hover:border-sky-700 cursor-pointer transition group shadow-sm"
+                  className="flex items-center gap-3 bg-base-800 hover:bg-base-700 px-4 py-3 rounded-lg border border-base-600 hover:border-accent/50 cursor-pointer transition-colors group"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-sky-500 to-sky-700 flex items-center justify-center text-white font-bold text-lg flex-shrink-0 shadow">
+                  {/* Avatar */}
+                  <div className="w-9 h-9 rounded-md bg-accent flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                     {curso.nombre.slice(0, 2).toUpperCase()}
                   </div>
 
+                  {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="font-bold text-slate-100 group-hover:text-sky-300 transition truncate text-base">
+                    <div className="font-semibold text-base-200 group-hover:text-white transition-colors truncate text-sm">
                       {curso.nombre}
                     </div>
-                    <div className="text-xs text-slate-400 mt-1 flex flex-wrap gap-x-3 gap-y-1">
-                      <span>👥 {estudiantesCurso.length} estudiantes</span>
+                    <div className="text-xs text-base-500 mt-0.5 flex flex-wrap gap-x-3">
+                      <span>{estudiantesCurso.length} estudiantes</span>
                       <span>·</span>
-                      <span>📘 {asignaturasCurso.length} asignaturas</span>
+                      <span>{asignaturasCurso.length} asignaturas</span>
                       <span>·</span>
-                      <span>📝 {actividades.length} actividades (P{curso.periodoActual})</span>
+                      <span>{actividades.length} actividades (P{curso.periodoActual})</span>
                     </div>
                   </div>
 
-                  {/* Acciones de curso: Editar y Borrar */}
-                  <div className="flex items-center gap-1 pl-2">
+                  {/* Acciones */}
+                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
-                      onClick={e => {
-                        e.stopPropagation();
-                        setCursoParaEditar(curso);
-                      }}
-                      className="p-2 text-slate-400 hover:text-sky-300 hover:bg-slate-700 rounded-xl transition"
-                      title="Modificar nombre y datos del curso"
+                      onClick={e => { e.stopPropagation(); setCursoParaEditar(curso); }}
+                      className="p-1.5 text-base-400 hover:text-accent-light hover:bg-base-600 rounded transition-colors"
+                      title="Editar curso"
                     >
-                      <Edit3 className="w-4 h-4" />
+                      <Edit3 className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={e => {
                         e.stopPropagation();
-                        if (
-                          confirm(
-                            `¿Eliminar el curso "${curso.nombre}"? Se perderán todas sus asignaturas, actividades y notas.`
-                          )
-                        ) {
+                        if (confirm(`¿Eliminar el curso "${curso.nombre}"?`)) {
                           DatabaseService.deleteCurso(curso.id);
                           refreshAll();
                         }
                       }}
-                      className="p-2 text-slate-500 hover:text-rose-400 hover:bg-slate-700 rounded-xl transition"
+                      className="p-1.5 text-base-400 hover:text-error hover:bg-base-600 rounded transition-colors"
                       title="Eliminar curso"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
-                    <ChevronRight className="w-5 h-5 text-slate-600 group-hover:text-sky-500 flex-shrink-0 transition ml-1" />
                   </div>
+                  <ChevronRight className="w-4 h-4 text-base-600 group-hover:text-base-400 flex-shrink-0 transition-colors" />
                 </div>
               );
             })}
@@ -440,29 +393,14 @@ function App() {
         )}
       </main>
 
-      {settingsOpen && (
-        <SettingsModal
-          isOpen={settingsOpen}
-          onClose={() => setSettingsOpen(false)}
-          onSaved={refreshAll}
-        />
-      )}
-      {estudiantesOpen && (
-        <EstudiantesManager
-          isOpen={estudiantesOpen}
-          onClose={() => setEstudiantesOpen(false)}
-          onChanged={refreshAll}
-        />
-      )}
+      {settingsOpen && <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} onSaved={refreshAll} />}
+      {estudiantesOpen && <EstudiantesManager isOpen={estudiantesOpen} onClose={() => setEstudiantesOpen(false)} onChanged={refreshAll} />}
       {cursoParaEditar && (
         <EditarCursoModal
           isOpen={Boolean(cursoParaEditar)}
           onClose={() => setCursoParaEditar(null)}
           curso={cursoParaEditar}
-          onSaved={() => {
-            setCursoParaEditar(null);
-            refreshAll();
-          }}
+          onSaved={() => { setCursoParaEditar(null); refreshAll(); }}
         />
       )}
       {expedienteOpen && (
