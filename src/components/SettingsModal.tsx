@@ -1,5 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { ConfiguracionSistema, CategoriaEvaluacion, TemaVisual } from '../types';
+import JSZip from 'jszip';
+import { invoke } from '@tauri-apps/api/core';
+import { ConfiguracionSistema, CategoriaEvaluacion, TemaVisual, BackupData } from '../types';
 import { DatabaseService } from '../services/db';
 import { TEMAS_INFO, ESCALAS_UI, aplicarTemaVisual, aplicarEscalaUI } from '../services/theme';
 import {
@@ -12,10 +14,13 @@ import {
   Download,
   Upload,
   Database,
-  Paperclip,
   Palette,
   Maximize2,
   Check,
+  FileArchive,
+  FileJson,
+  Filter,
+  FolderOpen,
 } from 'lucide-react';
 
 interface SettingsModalProps {
@@ -29,7 +34,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
   const [categorias, setCategorias] = useState<CategoriaEvaluacion[]>(DatabaseService.getCategorias());
   const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
   const [backupStatus, setBackupStatus] = useState<string | null>(null);
+  const [exportPanelOpen, setExportPanelOpen] = useState(false);
+  const [exportEspecificaOpen, setExportEspecificaOpen] = useState(false);
+  const [selectedCursoIds, setSelectedCursoIds] = useState<string[]>([]);
+  const [selectedAsigIds, setSelectedAsigIds] = useState<string[]>([]);
+  const [especificaConZip, setEspecificaConZip] = useState(false);
+  const [pendienteImportarJson, setPendienteImportarJson] = useState<{
+    jsonText: string;
+    nombreArchivo: string;
+    esEspecifica: boolean;
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const cursosDisponibles = DatabaseService.getCursos();
+  const asignaturasDisponibles = DatabaseService.getAsignaturas();
+  const aniosDisponibles = DatabaseService.getAnios();
 
   const [temaActivo, setTemaActivo] = useState<TemaVisual>(
     config.temaVisual || (localStorage.getItem('evaluador_tema_visual') as TemaVisual) || 'default'
@@ -99,96 +118,223 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
     setTimeout(() => { onSaved(); onClose(); }, 700);
   };
 
-  // Exportar Copia de Seguridad (Backup)
-  const handleExportarBackup = (incluirAdjuntos: boolean) => {
+  const descargarBlob = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const generarZipDesdeBackup = async (dataConAdjuntos: BackupData, filename: string) => {
+    const zip = new JSZip();
+    const adjuntosFolder = zip.folder('Adjuntos');
+    let countAdjuntos = 0;
+
+    // Clonar actividades sin base64 para el backup.json y guardar adjuntos en carpeta Adjuntos/
+    const actividadesLimpias = (dataConAdjuntos.actividades || []).map(act => {
+      if (act.archivoAdjuntoBase64 && act.archivoAdjuntoNombre && adjuntosFolder) {
+        const base64Parts = act.archivoAdjuntoBase64.split(',');
+        const rawBase64 = base64Parts.length > 1 ? base64Parts[1] : base64Parts[0];
+        const nombreSeguro = `${act.id}__${act.archivoAdjuntoNombre}`;
+        adjuntosFolder.file(nombreSeguro, rawBase64, { base64: true });
+        countAdjuntos++;
+      }
+      const copia = { ...act };
+      delete copia.archivoAdjuntoBase64;
+      return copia;
+    });
+
+    const jsonParaZip: BackupData = {
+      ...dataConAdjuntos,
+      actividades: actividadesLimpias,
+    };
+
+    zip.file('backup.json', JSON.stringify(jsonParaZip, null, 2));
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    descargarBlob(zipBlob, filename);
+    return countAdjuntos;
+  };
+
+  // Opción 1: Exportar Solo JSON
+  const handleExportarSoloJson = () => {
     try {
-      const data = DatabaseService.exportarBackup(incluirAdjuntos);
-      const jsonStr = JSON.stringify(data, null, 2);
-      const blob = new Blob([jsonStr], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
+      const data = DatabaseService.exportarBackup(false);
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const hoy = new Date().toISOString().split('T')[0];
-      const tipo = incluirAdjuntos ? 'completo' : 'ligero';
-
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `evaluador-respaldo-${tipo}-${hoy}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      setBackupStatus(`✓ Copia de seguridad (${incluirAdjuntos ? 'completa con adjuntos' : 'ligera sin base64 pesado'}) descargada.`);
+      descargarBlob(blob, `evaluador-respaldo-${hoy}.json`);
+      setBackupStatus('✓ Respaldo solo JSON descargado correctamente.');
       setTimeout(() => setBackupStatus(null), 3500);
     } catch (err: any) {
-      setBackupStatus(`Error al exportar: ${err.message || 'desconocido'}`);
+      setBackupStatus(`❌ Error al exportar JSON: ${err.message || 'desconocido'}`);
     }
   };
 
-  // Descargar individualmente los archivos de la carpeta Adjuntos
-  const handleDescargarAdjuntos = () => {
+  // Opción 2: Exportar ZIP Completo (JSON + Adjuntos)
+  const handleExportarZipCompleto = async () => {
     try {
-      const adjuntos = DatabaseService.getAdjuntos();
-      if (adjuntos.length === 0) {
-        setBackupStatus('No hay documentos ni imágenes adjuntos en las actividades actualmente.');
-        setTimeout(() => setBackupStatus(null), 3000);
-        return;
-      }
-
-      adjuntos.forEach((adj, idx) => {
-        setTimeout(() => {
-          const a = document.createElement('a');
-          a.href = adj.base64;
-          a.download = adj.nombre;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-        }, idx * 250);
-      });
-
-      setBackupStatus(`✓ Exportando ${adjuntos.length} archivo(s) para tu carpeta local "Adjuntos".`);
+      const data = DatabaseService.exportarBackup(true);
+      const hoy = new Date().toISOString().split('T')[0];
+      const countAdj = await generarZipDesdeBackup(data, `evaluador-respaldo-completo-${hoy}.zip`);
+      setBackupStatus(`✓ ZIP completo descargado (JSON + ${countAdj} archivo(s) adjunto(s)).`);
       setTimeout(() => setBackupStatus(null), 4000);
     } catch (err: any) {
-      setBackupStatus(`Error al descargar adjuntos: ${err.message || 'desconocido'}`);
+      setBackupStatus(`❌ Error al generar ZIP: ${err.message || 'desconocido'}`);
     }
   };
 
-  // Importar / Restaurar Copia de Seguridad
-  const handleImportarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Opción 3: Exportación Específica (Cursos / Asignaturas / Materia de un curso)
+  const handleExportarEspecifica = async () => {
+    if (selectedCursoIds.length === 0 && selectedAsigIds.length === 0) {
+      setBackupStatus('❌ Selecciona al menos un curso o una asignatura para exportar.');
+      return;
+    }
+    try {
+      const data = DatabaseService.exportarBackupEspecifico({
+        cursoIds: selectedCursoIds,
+        asignaturaIds: selectedAsigIds,
+        incluirAdjuntos: especificaConZip,
+      });
+      const hoy = new Date().toISOString().split('T')[0];
+
+      if (especificaConZip) {
+        const countAdj = await generarZipDesdeBackup(data, `evmim-especifico-${hoy}.zip`);
+        setBackupStatus(
+          `✓ Exportación específica en ZIP lista (${data.cursos.length} curso(s), ${data.asignaturas.length} asignatura(s), ${countAdj} adjunto(s)).`
+        );
+      } else {
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        descargarBlob(blob, `evmim-especifico-${hoy}.json`);
+        setBackupStatus(
+          `✓ Exportación específica JSON lista (${data.cursos.length} curso(s), ${data.asignaturas.length} asignatura(s), ${data.actividades.length} actividad(es)).`
+        );
+      }
+      setTimeout(() => setBackupStatus(null), 4000);
+    } catch (err: any) {
+      setBackupStatus(`❌ Error en exportación específica: ${err.message || 'desconocido'}`);
+    }
+  };
+
+  const handleAbrirCarpetaDatos = async () => {
+    try {
+      const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+      if (!isTauri) {
+        setBackupStatus(
+          'En modo navegador web, los datos se guardan en el almacenamiento interno (localStorage). Usa la app de escritorio para abrir la carpeta local.'
+        );
+        return;
+      }
+      const ruta = await invoke<string>('abrir_carpeta_datos');
+      setBackupStatus(`✓ Carpeta de almacenamiento local abierta: ${ruta}`);
+      setTimeout(() => setBackupStatus(null), 5000);
+    } catch (err: any) {
+      setBackupStatus(`❌ No se pudo abrir la carpeta local: ${err?.message || err}`);
+    }
+  };
+
+  const toggleCursoSeleccion = (cursoId: string) => {
+    setSelectedCursoIds(prev =>
+      prev.includes(cursoId) ? prev.filter(id => id !== cursoId) : [...prev, cursoId]
+    );
+  };
+
+  const toggleAsigSeleccion = (asigId: string) => {
+    setSelectedAsigIds(prev =>
+      prev.includes(asigId) ? prev.filter(id => id !== asigId) : [...prev, asigId]
+    );
+  };
+
+  // Importar / Restaurar Copia de Seguridad (.json o .zip)
+  const handleImportarFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = '';
 
-    const reader = new FileReader();
-    reader.onload = event => {
-      try {
-        const text = event.target?.result as string;
-        if (!text) return;
+    try {
+      let jsonText = '';
 
-        if (
-          confirm(
-            '¿Estás seguro de que deseas importar esta copia de seguridad? Todos los datos actuales del sistema se actualizarán con los datos del archivo.'
-          )
-        ) {
-          const res = DatabaseService.importarBackup(text);
-          if (res.ok) {
-            setBackupStatus(
-              `✓ ${res.mensaje} (${res.count?.estudiantes || 0} estudiantes, ${res.count?.cursos || 0} cursos, ${res.count?.calificaciones || 0} calificaciones restauradas).`
-            );
-            setConfig(DatabaseService.getConfiguracion());
-            setCategorias(DatabaseService.getCategorias());
-            setTimeout(() => {
-              onSaved();
-            }, 1000);
-          } else {
-            setBackupStatus(`❌ ${res.mensaje}`);
+      if (file.name.toLowerCase().endsWith('.zip')) {
+        const zip = await JSZip.loadAsync(file);
+        const jsonEntry =
+          zip.file('backup.json') ||
+          Object.values(zip.files).find(f => !f.dir && f.name.toLowerCase().endsWith('.json'));
+
+        if (!jsonEntry) {
+          setBackupStatus('❌ El archivo ZIP no contiene un archivo JSON de respaldo válido.');
+          return;
+        }
+
+        const rawJson = await jsonEntry.async('string');
+        const parsed = JSON.parse(rawJson) as BackupData;
+
+        // Re-embeber archivos de la carpeta Adjuntos/ si existen
+        if (Array.isArray(parsed.actividades)) {
+          for (const act of parsed.actividades) {
+            if (!act.archivoAdjuntoBase64 && act.archivoAdjuntoNombre) {
+              const adjEntry =
+                zip.file(`Adjuntos/${act.id}__${act.archivoAdjuntoNombre}`) ||
+                zip.file(`Adjuntos/${act.archivoAdjuntoNombre}`);
+              if (adjEntry) {
+                const base64 = await adjEntry.async('base64');
+                const ext = act.archivoAdjuntoNombre.split('.').pop()?.toLowerCase() || '';
+                const mime =
+                  ext === 'pdf'
+                    ? 'application/pdf'
+                    : ext === 'png'
+                    ? 'image/png'
+                    : ext === 'jpg' || ext === 'jpeg'
+                    ? 'image/jpeg'
+                    : 'application/octet-stream';
+                act.archivoAdjuntoBase64 = `data:${mime};base64,${base64}`;
+              }
+            }
           }
         }
-      } catch (err: any) {
-        setBackupStatus(`❌ Error al procesar el archivo: ${err.message}`);
+        jsonText = JSON.stringify(parsed);
+      } else {
+        jsonText = await file.text();
       }
-    };
-    reader.readAsText(file);
-    // Limpiar input para permitir reimportar si es necesario
-    e.target.value = '';
+
+      if (!jsonText) return;
+      const parsedCheck = JSON.parse(jsonText) as BackupData;
+      const esEspecifica = String(parsedCheck?.sistema || '').includes('Específica');
+
+      setPendienteImportarJson({
+        jsonText,
+        nombreArchivo: file.name,
+        esEspecifica,
+      });
+    } catch (err: any) {
+      setBackupStatus(`❌ Error al procesar el archivo: ${err.message || 'Formato inválido'}`);
+    }
+  };
+
+  const ejecutarImportacion = (modo: 'combinar' | 'reemplazar') => {
+    if (!pendienteImportarJson) return;
+    const res =
+      modo === 'combinar'
+        ? DatabaseService.fusionarBackup(pendienteImportarJson.jsonText)
+        : DatabaseService.importarBackup(pendienteImportarJson.jsonText);
+
+    setPendienteImportarJson(null);
+
+    if (res.ok) {
+      setBackupStatus(
+        modo === 'combinar'
+          ? `✓ ${res.mensaje} (+${res.count?.cursos || 0} curso(s), +${res.count?.estudiantes || 0} estudiante(s), +${res.count?.actividades || 0} actividad(es), +${res.count?.calificaciones || 0} nota(s)).`
+          : `✓ ${res.mensaje} (${res.count?.estudiantes || 0} estudiantes, ${res.count?.cursos || 0} cursos, ${res.count?.calificaciones || 0} calificaciones restauradas).`
+      );
+      setConfig(DatabaseService.getConfiguracion());
+      setCategorias(DatabaseService.getCategorias());
+      setTimeout(() => {
+        onSaved();
+      }, 1000);
+    } else {
+      setBackupStatus(`❌ ${res.mensaje}`);
+    }
   };
 
   const input = "w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-sm text-slate-100 focus:ring-2 focus:ring-sky-500 outline-none";
@@ -469,7 +615,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
               </h3>
             </div>
             <p className="text-xs text-slate-400 mb-4">
-              Exporta tus datos estructurados en formato ligero sin archivos pesados base64, respalda con adjuntos o descarga los documentos para tu carpeta local "Adjuntos".
+              Exporta toda tu base de datos en JSON o en un ZIP con tus documentos adjuntos, realiza una exportación específica o restaura un respaldo existente (.json o .zip).
             </p>
 
             {backupStatus && (
@@ -493,63 +639,36 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
               type="file"
               ref={fileInputRef}
               onChange={handleImportarFile}
-              accept=".json,application/json"
+              accept=".json,.zip,application/json,application/zip"
               className="hidden"
             />
 
+            {/* Dos botones principales: Exportar e Importar */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Exportar JSON Ligero */}
+              {/* Botón Principal Exportar */}
               <button
                 type="button"
-                onClick={() => handleExportarBackup(false)}
-                className="h-full min-h-[72px] p-3.5 bg-slate-800 hover:bg-slate-750 border border-slate-700 hover:border-sky-500 rounded-xl flex items-center gap-3 transition text-left group"
+                onClick={() => setExportPanelOpen(prev => !prev)}
+                className={`h-full min-h-[72px] p-3.5 border rounded-xl flex items-center gap-3 transition text-left group ${
+                  exportPanelOpen
+                    ? 'bg-sky-600/20 border-sky-500'
+                    : 'bg-slate-800 hover:bg-slate-750 border-slate-700 hover:border-sky-500'
+                }`}
               >
                 <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 group-hover:scale-105 transition flex-shrink-0">
                   <Download className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="text-xs font-bold text-slate-200 group-hover:text-sky-300">
-                    Exportar JSON Ligero
+                    Exportar Respaldo
                   </div>
-                  <div className="text-[11px] text-slate-400 mt-0.5">BD completa sin archivos pesados (Recomendado)</div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">
+                    Solo JSON, ZIP completo o Exportación específica
+                  </div>
                 </div>
               </button>
 
-              {/* Exportar JSON Completo */}
-              <button
-                type="button"
-                onClick={() => handleExportarBackup(true)}
-                className="h-full min-h-[72px] p-3.5 bg-slate-800 hover:bg-slate-750 border border-slate-700 hover:border-sky-500 rounded-xl flex items-center gap-3 transition text-left group"
-              >
-                <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 group-hover:scale-105 transition flex-shrink-0">
-                  <Download className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-slate-200 group-hover:text-sky-300">
-                    Exportar JSON Completo
-                  </div>
-                  <div className="text-[11px] text-slate-400 mt-0.5">Incluye adjuntos embebidos en base64</div>
-                </div>
-              </button>
-
-              {/* Descargar archivos para carpeta Adjuntos */}
-              <button
-                type="button"
-                onClick={handleDescargarAdjuntos}
-                className="h-full min-h-[72px] p-3.5 bg-slate-800 hover:bg-slate-750 border border-slate-700 hover:border-emerald-500 rounded-xl flex items-center gap-3 transition text-left group"
-              >
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition flex-shrink-0">
-                  <Paperclip className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-slate-200 group-hover:text-emerald-300">
-                    Exportar Carpeta "Adjuntos"
-                  </div>
-                  <div className="text-[11px] text-slate-400 mt-0.5">Descarga los documentos de actividades</div>
-                </div>
-              </button>
-
-              {/* Botón Importar */}
+              {/* Botón Principal Importar (.json o .zip) */}
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
@@ -560,12 +679,222 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                 </div>
                 <div>
                   <div className="text-xs font-bold text-slate-200 group-hover:text-amber-300">
-                    Importar / Restaurar (.json)
+                    Importar / Restaurar (.json / .zip)
                   </div>
-                  <div className="text-[11px] text-slate-400 mt-0.5">Cargar respaldo de datos existente</div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">
+                    Carga solo JSON o un ZIP con datos y adjuntos
+                  </div>
                 </div>
               </button>
             </div>
+
+            {/* Botón para abrir la carpeta física de almacenamiento local */}
+            <div className="mt-3">
+              <button
+                type="button"
+                onClick={handleAbrirCarpetaDatos}
+                className="w-full p-3 bg-slate-800/70 hover:bg-slate-800 border border-slate-700 hover:border-sky-500/70 rounded-xl flex items-center justify-between gap-3 transition text-left group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-slate-700/70 border border-slate-600 flex items-center justify-center text-sky-400 group-hover:scale-105 transition flex-shrink-0">
+                    <FolderOpen className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-slate-200 group-hover:text-sky-300">
+                      Abrir ubicación de almacenamiento local
+                    </div>
+                    <div className="text-[11px] text-slate-400">
+                      Abre el explorador de archivos en la carpeta donde se guardan los datos de la app
+                    </div>
+                  </div>
+                </div>
+                <span className="text-[11px] font-semibold text-sky-400 px-2 py-1 rounded bg-sky-500/10 border border-sky-500/20 flex-shrink-0">
+                  Abrir carpeta
+                </span>
+              </button>
+            </div>
+
+            {/* Subpanel de Confirmación de Importación (Combinar vs Reemplazar) */}
+            {pendienteImportarJson && (
+              <div className="mt-3 p-4 bg-amber-500/10 border border-amber-500/40 rounded-xl space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h5 className="text-xs font-bold text-amber-300">
+                      Archivo listo para importar: {pendienteImportarJson.nombreArchivo}
+                    </h5>
+                    <p className="text-[11px] text-slate-300 mt-0.5">
+                      {pendienteImportarJson.esEspecifica
+                        ? 'Se detectó una Exportación Específica. Se recomienda combinarla para unir estos cursos/materias sin borrar tus datos actuales.'
+                        : 'Elige si deseas unir este respaldo con tus datos actuales o reemplazar toda tu base de datos.'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPendienteImportarJson(null)}
+                    className="p-1 text-slate-400 hover:text-slate-200"
+                    title="Cancelar importación"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2 justify-end">
+                  <button
+                    type="button"
+                    onClick={() => ejecutarImportacion('combinar')}
+                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold shadow transition"
+                  >
+                    Unir / Combinar con datos actuales
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => ejecutarImportacion('reemplazar')}
+                    className="px-3.5 py-2 bg-rose-600/80 hover:bg-rose-600 text-white rounded-lg text-xs font-semibold transition"
+                  >
+                    Reemplazar todo el sistema
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Subpanel de Opciones de Exportación */}
+            {exportPanelOpen && (
+              <div className="mt-3 p-3.5 bg-slate-800/80 border border-slate-700 rounded-xl space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={handleExportarSoloJson}
+                    className="p-3 bg-slate-900/70 hover:bg-slate-900 border border-slate-700 hover:border-sky-500 rounded-xl flex flex-col gap-1.5 text-left transition"
+                  >
+                    <div className="flex items-center gap-2 text-xs font-bold text-sky-300">
+                      <FileJson className="w-4 h-4" /> Solo JSON
+                    </div>
+                    <span className="text-[11px] text-slate-400 leading-snug">
+                      Base de datos ligera sin archivos adjuntos.
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleExportarZipCompleto}
+                    className="p-3 bg-slate-900/70 hover:bg-slate-900 border border-slate-700 hover:border-emerald-500 rounded-xl flex flex-col gap-1.5 text-left transition"
+                  >
+                    <div className="flex items-center gap-2 text-xs font-bold text-emerald-300">
+                      <FileArchive className="w-4 h-4" /> ZIP (JSON + Adjuntos)
+                    </div>
+                    <span className="text-[11px] text-slate-400 leading-snug">
+                      Archivo .zip con JSON y todos los adjuntos.
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setExportEspecificaOpen(prev => !prev)}
+                    className={`p-3 border rounded-xl flex flex-col gap-1.5 text-left transition ${
+                      exportEspecificaOpen
+                        ? 'bg-sky-600/20 border-sky-500'
+                        : 'bg-slate-900/70 hover:bg-slate-900 border-slate-700 hover:border-sky-400'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-200">
+                      <Filter className="w-4 h-4 text-sky-400" /> Exportación Específica
+                    </div>
+                    <span className="text-[11px] text-slate-400 leading-snug">
+                      Elige cursos, asignaturas o una materia puntual.
+                    </span>
+                  </button>
+                </div>
+
+                {/* Selector de Exportación Específica */}
+                {exportEspecificaOpen && (
+                  <div className="p-3 bg-slate-900/90 border border-slate-700/80 rounded-xl space-y-3">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <h5 className="text-xs font-bold text-slate-200">
+                        Selecciona qué datos deseas exportar
+                      </h5>
+                      <label className="flex items-center gap-1.5 text-[11px] text-slate-300 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={especificaConZip}
+                          onChange={e => setEspecificaConZip(e.target.checked)}
+                          className="rounded border-slate-600"
+                        />
+                        Incluir adjuntos en archivo .zip
+                      </label>
+                    </div>
+
+                    {cursosDisponibles.length === 0 ? (
+                      <p className="text-xs text-slate-500 italic">No hay cursos registrados aún.</p>
+                    ) : (
+                      <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
+                        {cursosDisponibles.map(c => {
+                          const anio = aniosDisponibles.find(a => a.id === c.anioId);
+                          const asigsCurso = asignaturasDisponibles.filter(a => a.cursoId === c.id);
+                          const cursoChecked = selectedCursoIds.includes(c.id);
+                          return (
+                            <div
+                              key={c.id}
+                              className="p-2 bg-slate-800/70 border border-slate-700/70 rounded-lg space-y-1.5"
+                            >
+                              <label className="flex items-center gap-2 text-xs font-bold text-slate-200 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={cursoChecked}
+                                  onChange={() => toggleCursoSeleccion(c.id)}
+                                  className="rounded border-slate-600"
+                                />
+                                <span>{c.nombre}</span>
+                                <span className="text-[10px] font-normal text-slate-400">
+                                  (Año {anio?.nombre || c.anio}) — Curso completo
+                                </span>
+                              </label>
+                              {asigsCurso.length > 0 && (
+                                <div className="pl-5 flex flex-wrap gap-2">
+                                  {asigsCurso.map(asig => (
+                                    <label
+                                      key={asig.id}
+                                      className="flex items-center gap-1.5 text-[11px] text-slate-300 bg-slate-900/70 border border-slate-700 px-2 py-0.5 rounded-md cursor-pointer hover:border-sky-500/60"
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedAsigIds.includes(asig.id)}
+                                        onChange={() => toggleAsigSeleccion(asig.id)}
+                                        className="rounded border-slate-600"
+                                      />
+                                      <span>{asig.nombre}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    <div className="flex justify-end gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedCursoIds([]);
+                          setSelectedAsigIds([]);
+                        }}
+                        className="px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200"
+                      >
+                        Limpiar selección
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleExportarEspecifica}
+                        className="px-3.5 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow transition"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        Descargar Exportación ({especificaConZip ? 'ZIP' : 'JSON'})
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </section>
         </div>
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Actividad, Calificacion, Estudiante, Curso } from '../types';
 import { DatabaseService } from '../services/db';
 import { FichaEstudiante } from './FichaEstudiante';
-import { ClipboardPaste, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 
 interface PlanillaProps {
   curso: Curso;
@@ -245,19 +245,6 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
         </div>
       )}
 
-      <div className="flex items-center justify-between text-xs text-slate-400 mb-2 px-1">
-        <div className="flex items-center gap-1.5">
-          <ClipboardPaste className="w-3.5 h-3.5 text-sky-400" />
-          <span>
-            Tip Excel: Copia una columna de notas en Excel y presiona{' '}
-            <kbd className="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-sky-300 font-mono font-semibold">
-              Ctrl + V
-            </kbd>{' '}
-            sobre cualquier celda para rellenar hacia abajo automáticamente.
-          </span>
-        </div>
-      </div>
-
       <div
         className="planilla-container rounded-xl border border-slate-700 overflow-auto max-h-[calc(100vh-220px)] outline-none"
         tabIndex={0}
@@ -293,6 +280,14 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
               <th className="border-b border-slate-700 px-3 py-1.5 text-center font-bold text-purple-300 bg-purple-500/20 min-w-[70px]">
                 FINAL
               </th>
+              {periodo >= config.periodosCount && (
+                <th
+                  className="border-b border-slate-700 px-3 py-1.5 text-center font-bold text-sky-300 bg-sky-500/20 min-w-[92px]"
+                  title="Nota definitiva requerida en el último periodo para alcanzar la nota aprobatoria anual"
+                >
+                  META AÑO
+                </th>
+              )}
             </tr>
 
             {/* Fila 2: nombres de actividades */}
@@ -324,6 +319,11 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
                 );
               })}
               <th className="border-b border-slate-700 px-2 py-1 text-center font-bold text-purple-300 bg-purple-500/10">∑</th>
+              {periodo >= config.periodosCount && (
+                <th className="border-b border-slate-700 px-2 py-1 text-center font-bold text-sky-300 bg-sky-500/10 text-[10px]">
+                  Para aprobar
+                </th>
+              )}
             </tr>
           </thead>
 
@@ -359,6 +359,11 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
                   return (finals.reduce((a, b) => a + b, 0) / finals.length).toFixed(2);
                 })()}
               </td>
+              {periodo >= config.periodosCount && (
+                <td className="px-2 py-1.5 text-center font-bold bg-sky-500/10 text-sky-300 text-[11px]">
+                  Obj: {config.notaAprobatoria.toFixed(1)}
+                </td>
+              )}
             </tr>
 
             {/* Filas de estudiantes */}
@@ -450,6 +455,47 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
                       {finalEst !== null ? finalEst.toFixed(2) : '—'}
                     </span>
                   </td>
+
+                  {/* Nota necesaria para aprobar el año (visible al llegar al último periodo académico) */}
+                  {periodo >= config.periodosCount && (() => {
+                    const targetId = asignaturaId || curso.id;
+                    const meta = DatabaseService.calcularNotaNecesariaAnio(est.id, targetId, periodo);
+                    if (!meta) {
+                      return <td className="px-2 py-1.5 text-center text-slate-500 bg-sky-500/5">—</td>;
+                    }
+                    const superaMax = meta.notaNecesariaAnio > config.maxNota;
+                    return (
+                      <td
+                        className="px-2 py-1.5 text-center cursor-pointer bg-sky-500/5 hover:bg-sky-500/15"
+                        onClick={() => setFichaEstudianteId(est.id)}
+                        title={
+                          meta.yaAproboAnio
+                            ? 'El estudiante ya superó la nota mínima anual con los periodos anteriores'
+                            : superaMax
+                            ? `Requiere ${meta.notaNecesariaAnio.toFixed(2)}, supera el máximo (${config.maxNota})`
+                            : `Necesita ${meta.notaNecesariaAnio.toFixed(2)} definitivo en el último periodo para aprobar el año`
+                        }
+                      >
+                        {meta.yaAproboAnio ? (
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+                            ✓ Listo
+                          </span>
+                        ) : (
+                          <span
+                            className={`text-xs font-black px-2 py-0.5 rounded ${
+                              superaMax
+                                ? 'bg-rose-500/20 text-rose-300'
+                                : meta.notaNecesariaAnio >= config.notaAprobatoria
+                                ? 'bg-amber-500/20 text-amber-300'
+                                : 'bg-emerald-500/20 text-emerald-300'
+                            }`}
+                          >
+                            {meta.notaNecesariaAnio.toFixed(2)}
+                          </span>
+                        )}
+                      </td>
+                    );
+                  })()}
                 </tr>
               );
             })}

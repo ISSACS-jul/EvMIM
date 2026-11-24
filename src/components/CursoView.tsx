@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Curso, Actividad, Asignatura, Estudiante } from '../types';
 import { DatabaseService } from '../services/db';
+import { exportarPlanillaExcel } from '../services/excelExport';
 import { Planilla } from './Planilla';
 import { IngresarNotasModal } from './IngresarNotasModal';
 import { NuevaActividadModal } from './NuevaActividadModal';
@@ -25,6 +26,7 @@ import {
   Activity,
   Layers,
   Sparkles,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 interface CursoViewProps {
@@ -507,60 +509,103 @@ export const CursoView: React.FC<CursoViewProps> = ({
         {/* =========== PLANILLA =========== */}
         {tab === 'planilla' && (
           <div>
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-sm font-semibold text-slate-400">
-                Planilla — {activeAsignatura?.nombre || 'General'} (Periodo {periodo}) &nbsp;
-                <span className="text-slate-600">· Clic en celda para calificar · Enter/Tab para avanzar</span>
-              </h3>
-              <button
-                onClick={() => {
-                  setActividadParaEditar(null);
-                  setNuevaActividadOpen(true);
-                }}
-                className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-xl text-sm font-medium transition"
-              >
-                <Plus className="w-4 h-4" /> Nueva Actividad
-              </button>
-            </div>
-            <Planilla
-              key={`${curso.id}-${currentTargetId}-${periodo}-${refresh}`}
-              curso={curso}
-              periodo={periodo}
-              asignaturaId={activeAsignatura?.id}
-              onRefresh={handleRefresh}
-            />
+            {!activeAsignatura ? (
+              <div className="text-center py-20 bg-slate-800/40 border border-slate-800 rounded-2xl text-slate-500">
+                <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-25 text-sky-400" />
+                <p className="font-semibold text-slate-300">No hay asignaturas en este curso</p>
+                <p className="text-xs text-slate-500 mt-1 mb-4">
+                  Crea primero una asignatura en la barra superior para poder registrar actividades y calificaciones.
+                </p>
+                <button
+                  onClick={() => setCreandoAsignatura(true)}
+                  className="inline-flex items-center gap-1.5 bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-xl text-xs font-semibold transition shadow"
+                >
+                  <Plus className="w-4 h-4" /> Nueva Asignatura
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
+                  <h3 className="text-sm font-semibold text-slate-400">
+                    Planilla — {activeAsignatura.nombre} (Periodo {periodo}) &nbsp;
+                    <span className="text-slate-600">· Clic en celda para calificar · Enter/Tab para avanzar</span>
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => exportarPlanillaExcel(curso, periodo, activeAsignatura)}
+                      className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 rounded-xl text-sm font-medium transition shadow"
+                      title="Descargar únicamente esta planilla de notas en formato Excel (.xlsx)"
+                    >
+                      <FileSpreadsheet className="w-4 h-4" /> Exportar Excel
+                    </button>
+                    <button
+                      onClick={() => {
+                        setActividadParaEditar(null);
+                        setNuevaActividadOpen(true);
+                      }}
+                      className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-xl text-sm font-medium transition"
+                    >
+                      <Plus className="w-4 h-4" /> Nueva Actividad
+                    </button>
+                  </div>
+                </div>
+                <Planilla
+                  key={`${curso.id}-${currentTargetId}-${periodo}-${refresh}`}
+                  curso={curso}
+                  periodo={periodo}
+                  asignaturaId={activeAsignatura.id}
+                  onRefresh={handleRefresh}
+                />
+              </>
+            )}
           </div>
         )}
 
         {/* =========== ACTIVIDADES =========== */}
         {tab === 'actividades' && (
           <div>
-            <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
-              <h3 className="text-sm font-semibold text-slate-400">
-                Actividades de {activeAsignatura?.nombre || curso.nombre} — Periodo {periodo}
-              </h3>
-              <button
-                onClick={() => {
-                  setActividadParaEditar(null);
-                  setNuevaActividadOpen(true);
-                }}
-                className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-xl text-sm font-medium transition"
-              >
-                <Plus className="w-4 h-4" /> Nueva Actividad
-              </button>
-            </div>
-
-            {actividades.length === 0 ? (
-              <div className="text-center py-16 text-slate-600">
-                <ClipboardList className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                <p className="font-medium text-slate-500">
-                  Sin actividades para {activeAsignatura?.nombre || 'este curso'} en el Periodo {periodo}
+            {!activeAsignatura ? (
+              <div className="text-center py-20 bg-slate-800/40 border border-slate-800 rounded-2xl text-slate-500">
+                <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-25 text-sky-400" />
+                <p className="font-semibold text-slate-300">No hay asignaturas en este curso</p>
+                <p className="text-xs text-slate-500 mt-1 mb-4">
+                  Para crear actividades primero debes crear al menos una asignatura.
                 </p>
-                <p className="text-xs text-slate-600 mt-1">
-                  Crea una nueva actividad usando el botón superior
-                </p>
+                <button
+                  onClick={() => setCreandoAsignatura(true)}
+                  className="inline-flex items-center gap-1.5 bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-xl text-xs font-semibold transition shadow"
+                >
+                  <Plus className="w-4 h-4" /> Nueva Asignatura
+                </button>
               </div>
             ) : (
+              <>
+                <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
+                  <h3 className="text-sm font-semibold text-slate-400">
+                    Actividades de {activeAsignatura.nombre} — Periodo {periodo}
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setActividadParaEditar(null);
+                      setNuevaActividadOpen(true);
+                    }}
+                    className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-xl text-sm font-medium transition"
+                  >
+                    <Plus className="w-4 h-4" /> Nueva Actividad
+                  </button>
+                </div>
+
+                {actividades.length === 0 ? (
+                  <div className="text-center py-16 text-slate-600">
+                    <ClipboardList className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                    <p className="font-medium text-slate-500">
+                      Sin actividades para {activeAsignatura.nombre} en el Periodo {periodo}
+                    </p>
+                    <p className="text-xs text-slate-600 mt-1">
+                      Crea una nueva actividad usando el botón superior
+                    </p>
+                  </div>
+                ) : (
               <div className="space-y-3">
                 {categorias.map(cat => {
                   const actsDeCategoria = actividades.filter(a => a.categoriaId === cat.id);
@@ -677,6 +722,8 @@ export const CursoView: React.FC<CursoViewProps> = ({
                   );
                 })}
               </div>
+            )}
+              </>
             )}
           </div>
         )}

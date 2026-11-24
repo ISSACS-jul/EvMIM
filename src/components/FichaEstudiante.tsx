@@ -72,6 +72,9 @@ export const FichaEstudiante: React.FC<FichaEstudianteProps> = ({
     promediosPorPeriodo,
     promediosPorCategoria,
     notaNecesariaEstimada,
+    promedioAcumuladoAnio,
+    notaNecesariaAnio,
+    yaAproboAnio,
   } = datosResumen;
 
   const actividades = DatabaseService.getActividades(activeCursoId);
@@ -310,11 +313,43 @@ export const FichaEstudiante: React.FC<FichaEstudianteProps> = ({
           </div>
           {notaNecesariaEstimada !== undefined && estadoAprobacion !== 'aprobado' && (
             <div className="p-4 rounded-xl border bg-amber-500/20 text-amber-300 border-amber-500/30">
-              <div className="text-xs font-medium opacity-70 mb-1">Necesita para Aprobar</div>
+              <div className="text-xs font-medium opacity-70 mb-1">Necesita en el Periodo</div>
               <div className="text-3xl font-black">{notaNecesariaEstimada.toFixed(2)}</div>
               {notaNecesariaEstimada > config.maxNota && (
                 <div className="text-xs mt-1 font-semibold text-rose-400">Supera el máximo posible</div>
               )}
+            </div>
+          )}
+          {promedioAcumuladoAnio !== undefined && (
+            <div className={`p-4 rounded-xl border ${getNotaBg(promedioAcumuladoAnio)} border-current/20`}>
+              <div className="text-xs font-medium opacity-75 mb-1">Acumulado Año</div>
+              <div className="text-3xl font-black">{promedioAcumuladoAnio.toFixed(2)}</div>
+              <div className="text-[11px] opacity-75 mt-0.5">
+                Vacíos asumidos en {config.minNota}
+              </div>
+            </div>
+          )}
+          {notaNecesariaAnio !== undefined && (
+            <div
+              className={`p-4 rounded-xl border ${
+                yaAproboAnio
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                  : notaNecesariaAnio > config.maxNota
+                  ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                  : 'bg-sky-500/20 text-sky-300 border-sky-500/30'
+              }`}
+            >
+              <div className="text-xs font-medium opacity-80 mb-1">Meta Definitiva Año</div>
+              <div className="text-3xl font-black">
+                {yaAproboAnio ? '✓ Aprobado' : notaNecesariaAnio.toFixed(2)}
+              </div>
+              <div className="text-[11px] opacity-80 mt-0.5">
+                {yaAproboAnio
+                  ? 'Ya superó la nota mínima anual'
+                  : notaNecesariaAnio > config.maxNota
+                  ? `Supera el máx. (${config.maxNota})`
+                  : `Para aprobar el año (≥ ${config.notaAprobatoria})`}
+              </div>
             </div>
           )}
           <div className="p-4 rounded-xl border bg-slate-700/50 border-slate-700 text-slate-300">

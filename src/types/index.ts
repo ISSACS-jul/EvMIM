@@ -92,6 +92,9 @@ export interface ResumenEstudiante {
   calificacionesCount: number;
   estadoAprobacion: 'aprobado' | 'en_riesgo' | 'reprobado';
   notaNecesariaEstimada?: number; // Cuánto necesita para alcanzar la nota aprobatoria
+  promedioAcumuladoAnio?: number; // Promedio del año asumiendo nota mínima en periodos vacíos
+  notaNecesariaAnio?: number; // Nota definitiva necesaria para aprobar el año (visible en el último periodo)
+  yaAproboAnio?: boolean; // Indica si con los periodos previos ya aseguró la aprobación del año
 }
 
 // Historial y Expediente General del Estudiante (Multianual)
@@ -121,20 +124,28 @@ export interface ExpedienteEstudiante {
   aniosCursados: HistorialAnioEstudiante[];
 }
 
-// Evaluador Profundo: estructura para análisis detallado y curvas de notas
+// Evaluador Profundo: estructura para análisis detallado, curvas y rúbricas
+export interface CriterioRubrica {
+  id: string;
+  nombre: string;
+  pesoPorcentaje: number;
+}
+
 export interface EstudianteDatosEvaluacionProfunda {
   aciertosDirectos?: number;
   respuestasPorPregunta?: { [preguntaNum: number]: boolean };
+  notasRubrica?: { [criterioId: string]: number };
   notaCalculada: number;
 }
 
 export interface EvaluacionProfundaDetalle {
   id: string;
   actividadId: string;
-  modo: 'aciertos' | 'preguntas';
+  modo: 'aciertos' | 'preguntas' | 'rubrica';
   totalPreguntasOriginal: number;
   totalPreguntasEvaluadas: number;
   preguntasExcluidas?: number[]; // Lista de preguntas anuladas/excluidas (1-based)
+  criteriosRubrica?: CriterioRubrica[];
   normalizacionActiva: boolean;
   estudianteReferenciaId?: string; // ID del estudiante usado como referencia
   bonificacionPuntos?: number;

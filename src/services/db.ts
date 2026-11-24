@@ -85,15 +85,7 @@ export class DatabaseService {
 
   // --- AÑOS LECTIVOS ---
   static getAnios(): AnioLectivo[] {
-    const anios = this.get<AnioLectivo[]>(STORAGE_KEYS.ANIOS, []);
-    if (anios.length === 0) {
-      const demoAnios: AnioLectivo[] = [
-        { id: 'anio_2026', nombre: '2026' },
-      ];
-      this.set(STORAGE_KEYS.ANIOS, demoAnios);
-      return demoAnios;
-    }
-    return anios;
+    return this.get<AnioLectivo[]>(STORAGE_KEYS.ANIOS, []);
   }
 
   static addAnio(nombre: string): AnioLectivo {
@@ -124,15 +116,6 @@ export class DatabaseService {
   // --- CURSOS (GRADOS / NIVELES) ---
   static getCursos(anioId?: string): Curso[] {
     let cursos = this.get<Curso[]>(STORAGE_KEYS.CURSOS, []);
-    if (cursos.length === 0) {
-      // Demo inicial
-      const demoCursos: Curso[] = [
-        { id: 'c1', nombre: 'Séptimo A', anioId: 'anio_2026', anio: 2026, periodoActual: 1 },
-        { id: 'c2', nombre: 'Octavo B', anioId: 'anio_2026', anio: 2026, periodoActual: 1 },
-      ];
-      this.set(STORAGE_KEYS.CURSOS, demoCursos);
-      return demoCursos;
-    }
     // Normalizar cursos existentes que tengan anio numérico y no anioId
     cursos = cursos.map(c => {
       if (!c.anioId) {
@@ -210,16 +193,7 @@ export class DatabaseService {
 
   // --- ASIGNATURAS / MATERIAS ---
   static getAsignaturas(cursoId?: string): Asignatura[] {
-    let list = this.get<Asignatura[]>(STORAGE_KEYS.ASIGNATURAS, []);
-    if (list.length === 0) {
-      const demoAsignaturas: Asignatura[] = [
-        { id: 'asig_1', cursoId: 'c1', nombre: 'Matemáticas', periodoActual: 1 },
-        { id: 'asig_2', cursoId: 'c1', nombre: 'Lenguaje', periodoActual: 1 },
-        { id: 'asig_3', cursoId: 'c2', nombre: 'Física', periodoActual: 1 },
-      ];
-      this.set(STORAGE_KEYS.ASIGNATURAS, demoAsignaturas);
-      list = demoAsignaturas;
-    }
+    const list = this.get<Asignatura[]>(STORAGE_KEYS.ASIGNATURAS, []);
     if (cursoId) {
       return list.filter(a => a.cursoId === cursoId);
     }
@@ -271,52 +245,6 @@ export class DatabaseService {
   // --- ESTUDIANTES ---
   static getEstudiantes(cursoId?: string, anioId?: string): Estudiante[] {
     let list = this.get<Estudiante[]>(STORAGE_KEYS.ESTUDIANTES, []);
-    if (list.length === 0) {
-      const demoEstudiantes: Estudiante[] = [
-        {
-          id: 'e1',
-          codigo: 'EST-101',
-          nombre: 'Ana Sofía',
-          apellido: 'Gómez',
-          cursoIds: ['c1'],
-          matriculas: [{ anioId: 'anio_2026', cursoId: 'c1', materiaIds: ['asig_1', 'asig_2'] }],
-        },
-        {
-          id: 'e2',
-          codigo: 'EST-102',
-          nombre: 'Carlos Andrés',
-          apellido: 'Ramírez',
-          cursoIds: ['c1'],
-          matriculas: [{ anioId: 'anio_2026', cursoId: 'c1', materiaIds: ['asig_1', 'asig_2'] }],
-        },
-        {
-          id: 'e3',
-          codigo: 'EST-103',
-          nombre: 'Diana Marcela',
-          apellido: 'Pérez',
-          cursoIds: ['c1'],
-          matriculas: [{ anioId: 'anio_2026', cursoId: 'c1', materiaIds: ['asig_1', 'asig_2'] }],
-        },
-        {
-          id: 'e4',
-          codigo: 'EST-104',
-          nombre: 'Esteban',
-          apellido: 'Morales',
-          cursoIds: ['c1'],
-          matriculas: [{ anioId: 'anio_2026', cursoId: 'c1', materiaIds: ['asig_1', 'asig_2'] }],
-        },
-        {
-          id: 'e5',
-          codigo: 'EST-105',
-          nombre: 'Valentina',
-          apellido: 'Castro',
-          cursoIds: ['c1'],
-          matriculas: [{ anioId: 'anio_2026', cursoId: 'c1', materiaIds: ['asig_1', 'asig_2'] }],
-        },
-      ];
-      this.set(STORAGE_KEYS.ESTUDIANTES, demoEstudiantes);
-      list = demoEstudiantes;
-    }
 
     // Normalizar estudiantes para asegurar estructura de historial/matrículas
     const cursosList = this.get<Curso[]>(STORAGE_KEYS.CURSOS, []);
@@ -627,6 +555,89 @@ export class DatabaseService {
     this.set(STORAGE_KEYS.CALIFICACIONES, Array.from(map.values()));
   }
 
+  // --- CÁLCULO PONDERADO DE UN PERIODO Y META ANUAL ---
+  static calcularPromedioPeriodoEstudiante(
+    estudianteId: string,
+    targetCursoId: string,
+    periodo: number
+  ): number | null {
+    const categorias = this.getCategorias();
+    const actividadesCurso = targetCursoId ? this.getActividades(targetCursoId, periodo) : [];
+    if (actividadesCurso.length === 0) return null;
+
+    const todasCalificaciones = this.get<Calificacion[]>(STORAGE_KEYS.CALIFICACIONES, []).filter(
+      c => c.estudianteId === estudianteId && actividadesCurso.some(a => a.id === c.actividadId)
+    );
+
+    let sumaPonderada = 0;
+    let pesoTotal = 0;
+    for (const cat of categorias) {
+      const actsCat = actividadesCurso.filter(a => a.categoriaId === cat.id);
+      if (actsCat.length > 0) {
+        const califsCat = todasCalificaciones.filter(c => actsCat.some(a => a.id === c.actividadId));
+        if (califsCat.length > 0) {
+          const promCat = califsCat.reduce((acc, curr) => acc + curr.nota, 0) / califsCat.length;
+          sumaPonderada += promCat * (cat.pesoPorcentaje / 100);
+          pesoTotal += cat.pesoPorcentaje;
+        }
+      }
+    }
+
+    if (pesoTotal === 0) return null;
+    return Number((sumaPonderada / (pesoTotal / 100)).toFixed(2));
+  }
+
+  static calcularPromedioAcumuladoAnio(
+    estudianteId: string,
+    targetCursoId: string
+  ): number {
+    const config = this.getConfiguracion();
+    const totalPeriodos = Math.max(1, config.periodosCount || 4);
+    const pesos = config.pesosPeriodos || [];
+
+    let sumaPonderada = 0;
+    let pesoTotal = 0;
+    for (let p = 1; p <= totalPeriodos; p++) {
+      const pesoP = pesos[p - 1] ?? 100 / totalPeriodos;
+      const promP = this.calcularPromedioPeriodoEstudiante(estudianteId, targetCursoId, p);
+      const notaPeriodo = promP !== null ? promP : config.minNota;
+      sumaPonderada += notaPeriodo * (pesoP / 100);
+      pesoTotal += pesoP;
+    }
+
+    if (pesoTotal <= 0) return config.minNota;
+    return Number((sumaPonderada / (pesoTotal / 100)).toFixed(2));
+  }
+
+  static calcularNotaNecesariaAnio(
+    estudianteId: string,
+    targetCursoId: string,
+    periodoActual: number
+  ): { notaNecesariaAnio: number; yaAproboAnio: boolean; periodosRestantes: number } | null {
+    const config = this.getConfiguracion();
+    const totalPeriodos = Math.max(1, config.periodosCount || 4);
+    if (periodoActual < totalPeriodos) return null;
+
+    const pesos = config.pesosPeriodos || [];
+
+    let acumPrevio = 0;
+    for (let p = 1; p < periodoActual; p++) {
+      const pesoP = pesos[p - 1] ?? 100 / totalPeriodos;
+      const promP = this.calcularPromedioPeriodoEstudiante(estudianteId, targetCursoId, p);
+      const notaPeriodo = promP !== null ? promP : config.minNota;
+      acumPrevio += notaPeriodo * (pesoP / 100);
+    }
+
+    const pesoUltimo = pesos[totalPeriodos - 1] ?? 100 / totalPeriodos;
+    if (pesoUltimo <= 0) return null;
+
+    const req = (config.notaAprobatoria - acumPrevio) / (pesoUltimo / 100);
+    const yaAproboAnio = req <= config.minNota;
+    const notaNecesariaAnio = Number(Math.max(config.minNota, req).toFixed(2));
+
+    return { notaNecesariaAnio, yaAproboAnio, periodosRestantes: 1 };
+  }
+
   // --- MODELADO ORIENTADO A OBJETOS: CÁLCULOS ESTADÍSTICOS Y PREDICTIVOS ---
   static getResumenEstudiante(estudianteId: string, cursoId?: string): ResumenEstudiante | null {
     const estudiantes = this.getEstudiantes();
@@ -679,16 +690,13 @@ export class DatabaseService {
       ? Number(((sumaPonderadaPeriodoActual / (pesoTotalEvaluadoActual / 100))).toFixed(2))
       : 0;
 
-    // Calcular periodos pasados
+    // Calcular periodos pasados usando promedio ponderado por categorías
     for (let p = 1; p <= config.periodosCount; p++) {
       if (p === periodoActual) {
         promediosPorPeriodo[p] = promPeriodoActual;
       } else {
-        const actsP = actividadesCurso.filter(a => a.periodo === p);
-        const califsP = todasCalificaciones.filter(c => actsP.some(a => a.id === c.actividadId));
-        promediosPorPeriodo[p] = califsP.length > 0
-          ? Number((califsP.reduce((acc, cur) => acc + cur.nota, 0) / califsP.length).toFixed(2))
-          : 0;
+        const promP = this.calcularPromedioPeriodoEstudiante(estudianteId, targetCursoId, p);
+        promediosPorPeriodo[p] = promP ?? 0;
       }
     }
 
@@ -697,11 +705,13 @@ export class DatabaseService {
     const pesoFaltante = 100 - pesoTotalEvaluadoActual;
     if (pesoFaltante > 0) {
       const objetivo = config.notaAprobatoria;
-      // objetivo <= sumaPonderadaPeriodoActual + (notaReq * (pesoFaltante / 100))
-      // notaReq = (objetivo - sumaPonderadaPeriodoActual) / (pesoFaltante / 100)
       const req = (objetivo - sumaPonderadaPeriodoActual) / (pesoFaltante / 100);
       notaNecesaria = Number(Math.max(0, req).toFixed(2));
     }
+
+    // Promedio acumulado anual (asumiendo nota mínima en periodos vacíos) y meta en último periodo
+    const promedioAcumuladoAnio = this.calcularPromedioAcumuladoAnio(estudianteId, targetCursoId);
+    const metaAnio = this.calcularNotaNecesariaAnio(estudianteId, targetCursoId, periodoActual);
 
     // Estado
     let estado: 'aprobado' | 'en_riesgo' | 'reprobado' = 'aprobado';
@@ -720,6 +730,9 @@ export class DatabaseService {
       calificacionesCount: todasCalificaciones.length,
       estadoAprobacion: estado,
       notaNecesariaEstimada: notaNecesaria,
+      promedioAcumuladoAnio,
+      notaNecesariaAnio: metaAnio?.notaNecesariaAnio,
+      yaAproboAnio: metaAnio?.yaAproboAnio,
     };
   }
 
@@ -921,6 +934,84 @@ export class DatabaseService {
     };
   }
 
+  static exportarBackupEspecifico(opciones: {
+    cursoIds?: string[];
+    asignaturaIds?: string[];
+    incluirAdjuntos?: boolean;
+  }): BackupData {
+    const todosCursos = this.getCursos();
+    const todasAsignaturas = this.getAsignaturas();
+    const todosAnios = this.getAnios();
+    const todosEstudiantes = this.getEstudiantes();
+    const todasActividades = this.get<Actividad[]>(STORAGE_KEYS.ACTIVIDADES, []);
+    const todasCalificaciones = this.get<Calificacion[]>(STORAGE_KEYS.CALIFICACIONES, []);
+    const todasEvalProf = this.get<EvaluacionProfundaDetalle[]>(STORAGE_KEYS.EVALUACIONES_PROFUNDAS, []);
+
+    const cursoIdsSet = new Set(opciones.cursoIds || []);
+    const asigIdsSet = new Set(opciones.asignaturaIds || []);
+
+    // Determinar asignaturas seleccionadas (directamente o por pertenecer a un curso seleccionado)
+    const asignaturasFiltradas = todasAsignaturas.filter(
+      a => asigIdsSet.has(a.id) || (asigIdsSet.size === 0 && cursoIdsSet.has(a.cursoId)) || (cursoIdsSet.has(a.cursoId) && asigIdsSet.has(a.id))
+    );
+
+    // Si hay cursos seleccionados y asignaturas seleccionadas de otros cursos, incluir los cursos de las asignaturas filtradas
+    const cursosIdsFinal = new Set<string>(cursoIdsSet);
+    asignaturasFiltradas.forEach(a => cursosIdsFinal.add(a.cursoId));
+
+    const cursosFiltrados = todosCursos.filter(c => cursosIdsFinal.has(c.id));
+    const aniosIdsFinal = new Set(cursosFiltrados.map(c => c.anioId));
+    const aniosFiltrados = todosAnios.filter(a => aniosIdsFinal.has(a.id));
+
+    const asigFiltradasIds = new Set(asignaturasFiltradas.map(a => a.id));
+
+    // Actividades: si se especificaron asignaturas, filtrar por ellas (o por cursoId si no hay asignaturaId)
+    const actividadesFiltradasRaw = todasActividades.filter(act => {
+      if (asigIdsSet.size > 0) {
+        return (act.asignaturaId && asigFiltradasIds.has(act.asignaturaId)) || asigFiltradasIds.has(act.cursoId);
+      }
+      return cursosIdsFinal.has(act.cursoId) || (act.asignaturaId && asigFiltradasIds.has(act.asignaturaId));
+    });
+
+    const actividadesFiltradas = opciones.incluirAdjuntos
+      ? actividadesFiltradasRaw
+      : actividadesFiltradasRaw.map(a => {
+          const copia = { ...a };
+          delete copia.archivoAdjuntoBase64;
+          return copia;
+        });
+
+    const actIdsSet = new Set(actividadesFiltradas.map(a => a.id));
+    const calificacionesFiltradas = todasCalificaciones.filter(c => actIdsSet.has(c.actividadId));
+    const evalProfFiltradas = todasEvalProf.filter(e => actIdsSet.has(e.actividadId));
+
+    // Estudiantes vinculados a esos cursos/asignaturas
+    const estudiantesFiltrados = todosEstudiantes.filter(est => {
+      const cIds = est.cursoIds || (est.cursoId ? [est.cursoId] : []);
+      const enCurso = cIds.some(cid => cursosIdsFinal.has(cid));
+      if (!enCurso) return false;
+      if (asigIdsSet.size > 0 && est.asignaturaIds && est.asignaturaIds.length > 0) {
+        return est.asignaturaIds.some(aid => asigFiltradasIds.has(aid));
+      }
+      return true;
+    });
+
+    return {
+      version: '0.1.0',
+      fechaExportacion: new Date().toISOString(),
+      sistema: 'EvMIM - Exportación Específica',
+      config: this.getConfiguracion(),
+      categorias: this.getCategorias(),
+      anios: aniosFiltrados,
+      cursos: cursosFiltrados,
+      asignaturas: asignaturasFiltradas,
+      estudiantes: estudiantesFiltrados,
+      actividades: actividadesFiltradas,
+      calificaciones: calificacionesFiltradas,
+      evaluacionesProfundas: evalProfFiltradas,
+    };
+  }
+
   static importarBackup(jsonString: string): {
     ok: boolean;
     mensaje: string;
@@ -974,6 +1065,240 @@ export class DatabaseService {
       return {
         ok: false,
         mensaje: `Error al procesar el archivo de respaldo: ${err.message || 'Formato inválido'}`,
+      };
+    }
+  }
+
+  static fusionarBackup(jsonString: string): {
+    ok: boolean;
+    mensaje: string;
+    count?: {
+      anios: number;
+      cursos: number;
+      estudiantes: number;
+      actividades: number;
+      calificaciones: number;
+    };
+  } {
+    try {
+      const data = JSON.parse(jsonString);
+      if (!data || typeof data !== 'object' || !Array.isArray(data.cursos) || !Array.isArray(data.estudiantes)) {
+        return { ok: false, mensaje: 'El archivo no tiene un formato válido de EvMIM / Evaluador.' };
+      }
+
+      const aniosActuales = this.getAnios();
+      const cursosActuales = this.getCursos();
+      const asigsActuales = this.getAsignaturas();
+      const catsActuales = this.getCategorias();
+      const estsActuales = this.getEstudiantes();
+      const actsActuales = this.get<Actividad[]>(STORAGE_KEYS.ACTIVIDADES, []);
+      const califsActuales = this.get<Calificacion[]>(STORAGE_KEYS.CALIFICACIONES, []);
+      const evalsActuales = this.get<EvaluacionProfundaDetalle[]>(STORAGE_KEYS.EVALUACIONES_PROFUNDAS, []);
+
+      // 1. Mapear y unir Años
+      const anioMap = new Map<string, string>();
+      let aniosNuevos = 0;
+      for (const a of (data.anios || []) as AnioLectivo[]) {
+        const existe = aniosActuales.find(
+          x => x.id === a.id || x.nombre.trim().toLowerCase() === a.nombre.trim().toLowerCase()
+        );
+        if (existe) {
+          anioMap.set(a.id, existe.id);
+        } else {
+          aniosActuales.push(a);
+          anioMap.set(a.id, a.id);
+          aniosNuevos++;
+        }
+      }
+
+      // 2. Mapear y unir Categorías
+      const catMap = new Map<string, string>();
+      for (const c of (data.categorias || []) as CategoriaEvaluacion[]) {
+        const existe = catsActuales.find(
+          x => x.id === c.id || x.nombre.trim().toLowerCase() === c.nombre.trim().toLowerCase()
+        );
+        if (existe) {
+          catMap.set(c.id, existe.id);
+        } else {
+          catsActuales.push(c);
+          catMap.set(c.id, c.id);
+        }
+      }
+
+      // 3. Mapear y unir Cursos
+      const cursoMap = new Map<string, string>();
+      let cursosNuevos = 0;
+      for (const c of data.cursos as Curso[]) {
+        const mappedAnioId = anioMap.get(c.anioId) || c.anioId;
+        const existe = cursosActuales.find(
+          x =>
+            x.id === c.id ||
+            (x.anioId === mappedAnioId && x.nombre.trim().toLowerCase() === c.nombre.trim().toLowerCase())
+        );
+        if (existe) {
+          cursoMap.set(c.id, existe.id);
+        } else {
+          cursosActuales.push({ ...c, anioId: mappedAnioId });
+          cursoMap.set(c.id, c.id);
+          cursosNuevos++;
+        }
+      }
+
+      // 4. Mapear y unir Asignaturas
+      const asigMap = new Map<string, string>();
+      for (const a of (data.asignaturas || []) as Asignatura[]) {
+        const mappedCursoId = cursoMap.get(a.cursoId) || a.cursoId;
+        const existe = asigsActuales.find(
+          x =>
+            x.id === a.id ||
+            (x.cursoId === mappedCursoId && x.nombre.trim().toLowerCase() === a.nombre.trim().toLowerCase())
+        );
+        if (existe) {
+          asigMap.set(a.id, existe.id);
+        } else {
+          asigsActuales.push({ ...a, cursoId: mappedCursoId });
+          asigMap.set(a.id, a.id);
+        }
+      }
+
+      // 5. Mapear y unir Estudiantes (por ID, por Código o por Nombre+Apellido normalizados)
+      const normTxt = (s: string) =>
+        (s || '')
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase()
+          .replace(/\s+/g, ' ')
+          .trim();
+
+      const firmaNombre = (e: { nombre: string; apellido: string }) =>
+        normTxt(`${e.apellido} ${e.nombre}`);
+
+      const firmaPalabrasOrdenadas = (e: { nombre: string; apellido: string }) =>
+        normTxt(`${e.apellido} ${e.nombre}`).split(' ').filter(Boolean).sort().join(' ');
+
+      const estMap = new Map<string, string>();
+      let estsNuevos = 0;
+      for (const e of data.estudiantes as Estudiante[]) {
+        const mappedCursos = (e.cursoIds || (e.cursoId ? [e.cursoId] : [])).map(cid => cursoMap.get(cid) || cid);
+        const mappedAsigs = (e.asignaturaIds || []).map(aid => asigMap.get(aid) || aid);
+
+        const eFirma = firmaNombre(e);
+        const ePalabras = firmaPalabrasOrdenadas(e);
+
+        const existe =
+          estsActuales.find(x => x.id === e.id) ||
+          estsActuales.find(
+            x => e.codigo && x.codigo && normTxt(x.codigo) === normTxt(e.codigo)
+          ) ||
+          estsActuales.find(x => {
+            const mismosCursos = (x.cursoIds || []).some(cid => mappedCursos.includes(cid));
+            return mismosCursos && (firmaNombre(x) === eFirma || firmaPalabrasOrdenadas(x) === ePalabras);
+          }) ||
+          estsActuales.find(x => firmaNombre(x) === eFirma);
+
+        if (existe) {
+          estMap.set(e.id, existe.id);
+          const mergedCursos = Array.from(new Set([...(existe.cursoIds || []), ...mappedCursos]));
+          const mergedAsigs = Array.from(new Set([...(existe.asignaturaIds || []), ...mappedAsigs]));
+          existe.cursoIds = mergedCursos;
+          if (mergedAsigs.length > 0) existe.asignaturaIds = mergedAsigs;
+        } else {
+          estsActuales.push({
+            ...e,
+            cursoIds: mappedCursos,
+            asignaturaIds: mappedAsigs.length > 0 ? mappedAsigs : undefined,
+          });
+          estMap.set(e.id, e.id);
+          estsNuevos++;
+        }
+      }
+
+      // 6. Mapear y unir Actividades
+      const actMap = new Map<string, string>();
+      let actsNuevas = 0;
+      for (const act of (data.actividades || []) as Actividad[]) {
+        const mappedCursoId = cursoMap.get(act.cursoId) || asigMap.get(act.cursoId) || act.cursoId;
+        const mappedAsigId = act.asignaturaId ? (asigMap.get(act.asignaturaId) || act.asignaturaId) : undefined;
+        const mappedCatId = catMap.get(act.categoriaId) || act.categoriaId;
+
+        const existeIdx = actsActuales.findIndex(x => x.id === act.id);
+        const actNormalizada: Actividad = {
+          ...act,
+          cursoId: mappedCursoId,
+          asignaturaId: mappedAsigId,
+          categoriaId: mappedCatId,
+        };
+        if (existeIdx >= 0) {
+          actsActuales[existeIdx] = actNormalizada;
+          actMap.set(act.id, act.id);
+        } else {
+          actsActuales.push(actNormalizada);
+          actMap.set(act.id, act.id);
+          actsNuevas++;
+        }
+      }
+
+      // 7. Mapear y unir Calificaciones
+      let califsNuevas = 0;
+      for (const cal of (data.calificaciones || []) as Calificacion[]) {
+        const mappedActId = actMap.get(cal.actividadId) || cal.actividadId;
+        const mappedEstId = estMap.get(cal.estudianteId) || cal.estudianteId;
+        const idx = califsActuales.findIndex(
+          x => x.actividadId === mappedActId && x.estudianteId === mappedEstId
+        );
+        if (idx >= 0) {
+          califsActuales[idx] = { ...califsActuales[idx], nota: cal.nota, observaciones: cal.observaciones };
+        } else {
+          califsActuales.push({
+            ...cal,
+            actividadId: mappedActId,
+            estudianteId: mappedEstId,
+          });
+          califsNuevas++;
+        }
+      }
+
+      // 8. Mapear y unir Evaluaciones Profundas
+      for (const ep of (data.evaluacionesProfundas || []) as EvaluacionProfundaDetalle[]) {
+        const mappedActId = actMap.get(ep.actividadId) || ep.actividadId;
+        const nuevosEstDatos: EvaluacionProfundaDetalle['estudiantesDatos'] = {};
+        for (const [eId, datos] of Object.entries(ep.estudiantesDatos || {})) {
+          nuevosEstDatos[estMap.get(eId) || eId] = datos;
+        }
+        const epNorm: EvaluacionProfundaDetalle = {
+          ...ep,
+          actividadId: mappedActId,
+          estudiantesDatos: nuevosEstDatos,
+        };
+        const idx = evalsActuales.findIndex(x => x.actividadId === mappedActId);
+        if (idx >= 0) evalsActuales[idx] = epNorm;
+        else evalsActuales.push(epNorm);
+      }
+
+      this.set(STORAGE_KEYS.ANIOS, aniosActuales);
+      this.set(STORAGE_KEYS.CATEGORIAS, catsActuales);
+      this.set(STORAGE_KEYS.CURSOS, cursosActuales);
+      this.set(STORAGE_KEYS.ASIGNATURAS, asigsActuales);
+      this.set(STORAGE_KEYS.ESTUDIANTES, estsActuales);
+      this.set(STORAGE_KEYS.ACTIVIDADES, actsActuales);
+      this.set(STORAGE_KEYS.CALIFICACIONES, califsActuales);
+      this.set(STORAGE_KEYS.EVALUACIONES_PROFUNDAS, evalsActuales);
+
+      return {
+        ok: true,
+        mensaje: 'Datos combinados exitosamente con tu base de datos actual.',
+        count: {
+          anios: aniosNuevos,
+          cursos: cursosNuevos,
+          estudiantes: estsNuevos,
+          actividades: actsNuevas,
+          calificaciones: califsNuevas,
+        },
+      };
+    } catch (err: any) {
+      return {
+        ok: false,
+        mensaje: `Error al combinar los datos: ${err.message || 'Formato inválido'}`,
       };
     }
   }

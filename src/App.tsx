@@ -6,6 +6,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { EstudiantesManager } from './components/EstudiantesManager';
 import { EditarCursoModal } from './components/EditarCursoModal';
 import { ExpedienteEstudianteModal } from './components/ExpedienteEstudianteModal';
+import { CalculadoraNotasWidget } from './components/CalculadoraNotasWidget';
 import {
   GraduationCap,
   Settings,
@@ -26,7 +27,7 @@ import './index.css';
 function App() {
   const [anios, setAnios] = useState<AnioLectivo[]>(DatabaseService.getAnios());
   const [selectedAnioId, setSelectedAnioId] = useState<string>(
-    anios[0]?.id || 'anio_2026'
+    anios[0]?.id || ''
   );
 
   const [cursos, setCursos] = useState<Curso[]>(DatabaseService.getCursos(selectedAnioId));
@@ -88,7 +89,18 @@ function App() {
 
   const handleCrearCurso = () => {
     if (!nuevoCursoNombre.trim()) return;
-    const nuevo = DatabaseService.addCurso(nuevoCursoNombre.trim(), selectedAnioId);
+    let anioIdDestino = selectedAnioId;
+    if (!anioIdDestino) {
+      const listaAnios = DatabaseService.getAnios();
+      if (listaAnios.length > 0) {
+        anioIdDestino = listaAnios[0].id;
+      } else {
+        const anioCreado = DatabaseService.addAnio(String(new Date().getFullYear()));
+        anioIdDestino = anioCreado.id;
+      }
+      setSelectedAnioId(anioIdDestino);
+    }
+    const nuevo = DatabaseService.addCurso(nuevoCursoNombre.trim(), anioIdDestino);
     setNuevoCursoNombre('');
     setMostrarFormCurso(false);
     refreshAll();
@@ -170,6 +182,7 @@ function App() {
           estudianteId={expedienteEstudianteId}
           onClose={() => setExpedienteOpen(false)}
         />
+        <CalculadoraNotasWidget />
       </div>
     );
   }
@@ -265,22 +278,26 @@ function App() {
 
           {/* Pestañas de Años */}
           <div className="flex gap-2 flex-wrap items-center">
-            {anios.map(a => {
-              const activo = a.id === selectedAnioId;
-              return (
-                <div
-                  key={a.id}
-                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition border ${
-                    activo
-                      ? 'bg-sky-600 border-sky-500 text-white shadow'
-                      : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'
-                  }`}
-                >
-                  <button onClick={() => handleSeleccionarAnio(a.id)}>
-                    Año {a.nombre}
-                  </button>
+            {anios.length === 0 ? (
+              <span className="text-xs text-slate-500 italic">
+                Sin años lectivos registrados. Crea uno con "+ Crear Año" o se creará automáticamente al añadir tu primer curso.
+              </span>
+            ) : (
+              anios.map(a => {
+                const activo = a.id === selectedAnioId;
+                return (
+                  <div
+                    key={a.id}
+                    className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition border ${
+                      activo
+                        ? 'bg-sky-600 border-sky-500 text-white shadow'
+                        : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    <button onClick={() => handleSeleccionarAnio(a.id)}>
+                      Año {a.nombre}
+                    </button>
 
-                  {anios.length > 1 && (
                     <button
                       onClick={() => handleEliminarAnio(a.id, a.nombre)}
                       className={`p-0.5 rounded hover:bg-black/20 ${
@@ -290,10 +307,10 @@ function App() {
                     >
                       <X className="w-3 h-3" />
                     </button>
-                  )}
-                </div>
-              );
-            })}
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -354,7 +371,7 @@ function App() {
 
         {/* Lista de cursos del año seleccionado */}
         <div className="mb-3 flex items-center justify-between text-xs text-slate-400 font-semibold uppercase tracking-wider">
-          <span>Cursos / Grados — Año {anioActualObj?.nombre}</span>
+          <span>{anioActualObj ? `Cursos / Grados — Año ${anioActualObj.nombre}` : 'Cursos / Grados'}</span>
           <span>{cursosFiltrados.length} curso(s)</span>
         </div>
 
@@ -364,11 +381,13 @@ function App() {
             <p className="font-semibold text-slate-500">
               {busqueda
                 ? `No se encontró "${busqueda}" en este año`
-                : `No hay cursos registrados en el Año ${anioActualObj?.nombre}`}
+                : anioActualObj
+                ? `No hay cursos registrados en el Año ${anioActualObj.nombre}`
+                : 'Aún no hay datos registrados'}
             </p>
             {!busqueda && (
               <p className="text-sm mt-1 text-slate-600">
-                Crea cursos (como Séptimo, Octavo, Noveno...) con el botón "+ Nuevo Curso".
+                Crea tu primer curso con el botón "+ Nuevo Curso" o importa un respaldo desde Configuración.
               </p>
             )}
           </div>
@@ -472,6 +491,7 @@ function App() {
           onClose={() => setExpedienteOpen(false)}
         />
       )}
+      <CalculadoraNotasWidget />
     </div>
   );
 }

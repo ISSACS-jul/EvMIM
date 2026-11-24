@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Actividad, Curso, EvaluacionProfundaDetalle } from '../types';
+import { Actividad, Curso, EvaluacionProfundaDetalle, CriterioRubrica } from '../types';
 import { DatabaseService } from '../services/db';
 import {
   X,
@@ -13,6 +13,8 @@ import {
   TrendingUp,
   RefreshCw,
   Info,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 
 interface EvaluadorProfundoModalProps {
@@ -69,8 +71,8 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
     return DatabaseService.getEstudiantes(selectedAsignaturaId || cursoActivo.id);
   }, [cursoActivo?.id, selectedAsignaturaId]);
 
-  // Modo de evaluación: 'aciertos' o 'preguntas'
-  const [modo, setModo] = useState<'aciertos' | 'preguntas'>('aciertos');
+  // Modo de evaluación: 'aciertos', 'preguntas' o 'rubrica'
+  const [modo, setModo] = useState<'aciertos' | 'preguntas' | 'rubrica'>('aciertos');
 
   // Configuración de la prueba
   const [totalPreguntasOriginal, setTotalPreguntasOriginal] = useState<number>(20);
@@ -79,11 +81,21 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
   const [estudianteReferenciaId, setEstudianteReferenciaId] = useState<string>('auto');
   const [bonificacionPuntos, setBonificacionPuntos] = useState<number>(0);
 
+  // Configuración de Rúbrica
+  const [criteriosRubrica, setCriteriosRubrica] = useState<CriterioRubrica[]>([
+    { id: 'crit_1', nombre: 'Presentación y orden', pesoPorcentaje: 20 },
+    { id: 'crit_2', nombre: 'Desarrollo y contenido', pesoPorcentaje: 50 },
+    { id: 'crit_3', nombre: 'Argumentación / Conclusiones', pesoPorcentaje: 30 },
+  ]);
+
   // Registro de respuestas por estudiante
-  // aciertosDirectos: number | respuestasPorPregunta: { [num]: boolean }
+  // aciertosDirectos: number | respuestasPorPregunta: { [num]: boolean } | notasRubrica: { [criterioId]: number }
   const [aciertosPorEstudiante, setAciertosPorEstudiante] = useState<{ [estudianteId: string]: number }>({});
   const [respuestasPorPregunta, setRespuestasPorPregunta] = useState<{
     [estudianteId: string]: { [preguntaNum: number]: boolean };
+  }>({});
+  const [notasRubrica, setNotasRubrica] = useState<{
+    [estudianteId: string]: { [criterioId: string]: number };
   }>({});
 
   const [mensajeExito, setMensajeExito] = useState<string | null>(null);
@@ -99,17 +111,23 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
         setNormalizacionActiva(Boolean(guardado.normalizacionActiva));
         setEstudianteReferenciaId(guardado.estudianteReferenciaId || 'auto');
         setBonificacionPuntos(guardado.bonificacionPuntos || 0);
+        if (guardado.criteriosRubrica && guardado.criteriosRubrica.length > 0) {
+          setCriteriosRubrica(guardado.criteriosRubrica);
+        }
 
         const aciertosMap: { [id: string]: number } = {};
         const respuestasMap: { [id: string]: { [num: number]: boolean } } = {};
+        const rubricaMap: { [id: string]: { [critId: string]: number } } = {};
 
         for (const [eId, datos] of Object.entries(guardado.estudiantesDatos || {})) {
           if (datos.aciertosDirectos !== undefined) aciertosMap[eId] = datos.aciertosDirectos;
           if (datos.respuestasPorPregunta) respuestasMap[eId] = datos.respuestasPorPregunta;
+          if (datos.notasRubrica) rubricaMap[eId] = datos.notasRubrica;
         }
 
         setAciertosPorEstudiante(aciertosMap);
         setRespuestasPorPregunta(respuestasMap);
+        setNotasRubrica(rubricaMap);
       } else {
         // Inicializar aciertos desde calificaciones existentes si las hay
         const calificacionesExistentes = DatabaseService.getCalificaciones(actividadActiva.id);
@@ -176,9 +194,27 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
     return aciertosRef > 0 ? aciertosRef : mejorAciertoGrupo;
   }, [normalizacionActiva, estudianteReferenciaId, mejorAciertoGrupo, totalPreguntasEvaluadas]);
 
+  const sumaPesosRubrica = useMemo(
+    () => criteriosRubrica.reduce((acc, c) => acc + (Number(c.pesoPorcentaje) || 0), 0),
+    [criteriosRubrica]
+  );
+
   // Fórmula matemática de cálculo:
   // Nota = ((NotaMax - NotaMin) / PreguntasEvaluadas) * Aciertos + NotaMin + Bonificacion
+  // En modo 'rubrica': promedio ponderado de los apartados de texto + Bonificacion
   const calcularNota = (estId: string): number => {
+    if (modo === 'rubrica') {
+      if (criteriosRubrica.length === 0 || sumaPesosRubrica <= 0) return config.minNota;
+      let sumaPonderada = 0;
+      for (const crit of criteriosRubrica) {
+        const notaCrit = notasRubrica[estId]?.[crit.id] ?? config.minNota;
+        sumaPonderada += notaCrit * (Number(crit.pesoPorcentaje) || 0);
+      }
+      const notaBase = sumaPonderada / sumaPesosRubrica;
+      const notaFinal = Math.min(config.maxNota, Math.max(config.minNota, notaBase + bonificacionPuntos));
+      return Number(notaFinal.toFixed(2));
+    }
+
     const aciertos = getAciertosEstudiante(estId);
     const divisor = normalizacionActiva ? Math.max(1, aciertosReferencia) : Math.max(1, totalPreguntasEvaluadas);
 
@@ -195,7 +231,7 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
       aciertos: getAciertosEstudiante(e.id),
       nota: calcularNota(e.id),
     }));
-  }, [estudiantes, aciertosPorEstudiante, respuestasPorPregunta, preguntasExcluidas, normalizacionActiva, aciertosReferencia, bonificacionPuntos, modo]);
+  }, [estudiantes, aciertosPorEstudiante, respuestasPorPregunta, notasRubrica, criteriosRubrica, sumaPesosRubrica, preguntasExcluidas, normalizacionActiva, aciertosReferencia, bonificacionPuntos, modo]);
 
   const promedioGrupo = useMemo(() => {
     if (notasCalculadas.length === 0) return 0;
@@ -253,6 +289,7 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
       estudiantesDatos[est.id] = {
         aciertosDirectos: aciertosPorEstudiante[est.id] || 0,
         respuestasPorPregunta: respuestasPorPregunta[est.id] || {},
+        notasRubrica: notasRubrica[est.id] || {},
         notaCalculada: calcularNota(est.id),
       };
     }
@@ -264,6 +301,7 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
       totalPreguntasOriginal,
       totalPreguntasEvaluadas,
       preguntasExcluidas,
+      criteriosRubrica,
       normalizacionActiva,
       estudianteReferenciaId,
       bonificacionPuntos,
@@ -288,9 +326,12 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
       actividadId: actividadActiva.id,
       estudianteId: e.id,
       nota: calcularNota(e.id),
-      observaciones: normalizacionActiva
-        ? `Evaluador Profundo (${getAciertosEstudiante(e.id)}/${totalPreguntasEvaluadas} aciertos con curva normalizada)`
-        : `Evaluador Profundo (${getAciertosEstudiante(e.id)}/${totalPreguntasEvaluadas} aciertos)`,
+      observaciones:
+        modo === 'rubrica'
+          ? `Evaluador Profundo (Rúbrica: ${criteriosRubrica.length} apartados)`
+          : normalizacionActiva
+          ? `Evaluador Profundo (${getAciertosEstudiante(e.id)}/${totalPreguntasEvaluadas} aciertos con curva normalizada)`
+          : `Evaluador Profundo (${getAciertosEstudiante(e.id)}/${totalPreguntasEvaluadas} aciertos)`,
     }));
 
     DatabaseService.saveCalificacionesLote(lote);
@@ -459,31 +500,44 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
                 >
                   📋 Pregunta por Pregunta
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setModo('rubrica')}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition ${
+                    modo === 'rubrica'
+                      ? 'bg-sky-600 text-white shadow'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  📐 Rúbrica
+                </button>
               </div>
             </div>
 
-            {/* Total de Preguntas Original */}
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-semibold text-slate-300">Total Preguntas de la Prueba:</label>
-              <input
-                type="number"
-                min="1"
-                max="100"
-                value={totalPreguntasOriginal}
-                onChange={e => {
-                  const val = parseInt(e.target.value) || 1;
-                  setTotalPreguntasOriginal(Math.max(1, Math.min(100, val)));
-                }}
-                className="w-16 px-2 py-1 bg-slate-900 border border-slate-600 rounded-lg text-sm text-center text-white font-bold outline-none focus:border-sky-500"
-              />
-              <span className="text-xs text-slate-500">
-                (Evaluadas: <b className="text-sky-400">{totalPreguntasEvaluadas}</b>
-                {preguntasExcluidas.length > 0 && (
-                  <span className="text-amber-400">, {preguntasExcluidas.length} anuladas</span>
-                )}
-                )
-              </span>
-            </div>
+            {modo !== 'rubrica' && (
+              /* Total de Preguntas Original */
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-semibold text-slate-300">Total Preguntas de la Prueba:</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={totalPreguntasOriginal}
+                  onChange={e => {
+                    const val = parseInt(e.target.value) || 1;
+                    setTotalPreguntasOriginal(Math.max(1, Math.min(100, val)));
+                  }}
+                  className="w-16 px-2 py-1 bg-slate-900 border border-slate-600 rounded-lg text-sm text-center text-white font-bold outline-none focus:border-sky-500"
+                />
+                <span className="text-xs text-slate-500">
+                  (Evaluadas: <b className="text-sky-400">{totalPreguntasEvaluadas}</b>
+                  {preguntasExcluidas.length > 0 && (
+                    <span className="text-amber-400">, {preguntasExcluidas.length} anuladas</span>
+                  )}
+                  )
+                </span>
+              </div>
+            )}
 
             {/* Bonificación adicional */}
             <div className="flex items-center gap-2">
@@ -500,48 +554,138 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
             </div>
           </div>
 
-          {/* Ajuste de Normalización por Referencia (Curva) */}
-          <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-700/80 flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-3">
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={normalizacionActiva}
-                  onChange={e => setNormalizacionActiva(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
-              </label>
-              <div>
-                <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                  <TrendingUp className="w-3.5 h-3.5 text-amber-400" /> Normalizar Notas por Estudiante de Referencia (Curva)
-                </span>
-                <p className="text-[11px] text-slate-400">
-                  Ajusta la escala para que el mejor estudiante obtenga la nota máxima ({config.maxNota}) y escala a los demás proporcionalmente.
-                </p>
+          {modo !== 'rubrica' ? (
+            /* Ajuste de Normalización por Referencia (Curva) */
+            <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-700/80 flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={normalizacionActiva}
+                    onChange={e => setNormalizacionActiva(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                </label>
+                <div>
+                  <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                    <TrendingUp className="w-3.5 h-3.5 text-amber-400" /> Normalizar Notas por Estudiante de Referencia (Curva)
+                  </span>
+                  <p className="text-[11px] text-slate-400">
+                    Ajusta la escala para que el mejor estudiante obtenga la nota máxima ({config.maxNota}) y escala a los demás proporcionalmente.
+                  </p>
+                </div>
+              </div>
+
+              {normalizacionActiva && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400 font-medium">Estudiante de Referencia:</span>
+                  <select
+                    value={estudianteReferenciaId}
+                    onChange={e => setEstudianteReferenciaId(e.target.value)}
+                    className="bg-slate-800 border border-amber-500/60 text-xs text-amber-300 px-3 py-1.5 rounded-lg outline-none font-semibold cursor-pointer"
+                  >
+                    <option value="auto">
+                      ⭐ Automático: Mejor del Grupo ({mejorAciertoGrupo} aciertos)
+                    </option>
+                    {estudiantes.map(e => (
+                      <option key={e.id} value={e.id}>
+                        {e.apellido}, {e.nombre} ({getAciertosEstudiante(e.id)} aciertos)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Configuración de Apartados de la Rúbrica */
+            <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-700/80 space-y-2.5">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <span className="text-xs font-bold text-slate-200">
+                    Apartados de la Rúbrica (Texto, Nota y Peso %)
+                  </span>
+                  <span
+                    className={`ml-2 text-[11px] font-bold px-2 py-0.5 rounded ${
+                      sumaPesosRubrica === 100
+                        ? 'bg-emerald-500/20 text-emerald-300'
+                        : 'bg-amber-500/20 text-amber-300'
+                    }`}
+                  >
+                    Suma de pesos: {sumaPesosRubrica}%
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCriteriosRubrica([
+                      ...criteriosRubrica,
+                      {
+                        id: `crit_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
+                        nombre: `Apartado ${criteriosRubrica.length + 1}`,
+                        pesoPorcentaje: 10,
+                      },
+                    ])
+                  }
+                  className="text-xs bg-sky-600 hover:bg-sky-500 text-white px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1 transition"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Agregar apartado
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {criteriosRubrica.map((crit, idx) => (
+                  <div
+                    key={crit.id}
+                    className="flex items-center gap-1.5 bg-slate-800 border border-slate-700 rounded-lg p-1.5"
+                  >
+                    <span className="text-[10px] font-bold text-slate-500 px-1">#{idx + 1}</span>
+                    <input
+                      type="text"
+                      value={crit.nombre}
+                      onChange={e =>
+                        setCriteriosRubrica(prev =>
+                          prev.map(c => (c.id === crit.id ? { ...c, nombre: e.target.value } : c))
+                        )
+                      }
+                      placeholder="Nombre del apartado..."
+                      className="flex-1 min-w-0 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 outline-none focus:border-sky-500"
+                    />
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={crit.pesoPorcentaje}
+                        onChange={e =>
+                          setCriteriosRubrica(prev =>
+                            prev.map(c =>
+                              c.id === crit.id
+                                ? { ...c, pesoPorcentaje: Math.max(0, parseFloat(e.target.value) || 0) }
+                                : c
+                            )
+                          )
+                        }
+                        className="w-12 bg-slate-900 border border-slate-700 rounded px-1 py-1 text-xs text-center font-bold text-sky-300 outline-none focus:border-sky-500"
+                      />
+                      <span className="text-[11px] text-slate-400">%</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        criteriosRubrica.length > 1 &&
+                        setCriteriosRubrica(prev => prev.filter(c => c.id !== crit.id))
+                      }
+                      disabled={criteriosRubrica.length <= 1}
+                      className="p-1 text-slate-500 hover:text-rose-400 disabled:opacity-30 transition"
+                      title="Eliminar apartado"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
-
-            {normalizacionActiva && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400 font-medium">Estudiante de Referencia:</span>
-                <select
-                  value={estudianteReferenciaId}
-                  onChange={e => setEstudianteReferenciaId(e.target.value)}
-                  className="bg-slate-800 border border-amber-500/60 text-xs text-amber-300 px-3 py-1.5 rounded-lg outline-none font-semibold cursor-pointer"
-                >
-                  <option value="auto">
-                    ⭐ Automático: Mejor del Grupo ({mejorAciertoGrupo} aciertos)
-                  </option>
-                  {estudiantes.map(e => (
-                    <option key={e.id} value={e.id}>
-                      {e.apellido}, {e.nombre} ({getAciertosEstudiante(e.id)} aciertos)
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
+          )}
         </div>
 
         {/* Resumen KPI en Vivo */}
@@ -555,7 +699,9 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
             </span>
             <span className="text-slate-400">
               Fórmula activa: <code className="text-slate-300 bg-slate-900 px-1.5 py-0.5 rounded text-[11px] font-mono">
-                (({config.maxNota} - {config.minNota}) / {normalizacionActiva ? aciertosReferencia : totalPreguntasEvaluadas}) × Aciertos + {config.minNota}
+                {modo === 'rubrica'
+                  ? `∑(Nota_i × Peso_i) / ${sumaPesosRubrica}%${bonificacionPuntos > 0 ? ` + ${bonificacionPuntos}` : ''}`
+                  : `((${config.maxNota} - ${config.minNota}) / ${normalizacionActiva ? aciertosReferencia : totalPreguntasEvaluadas}) × Aciertos + ${config.minNota}`}
               </code>
             </span>
           </div>
@@ -566,6 +712,7 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
                 if (confirm('¿Restablecer todas las respuestas a cero?')) {
                   setAciertosPorEstudiante({});
                   setRespuestasPorPregunta({});
+                  setNotasRubrica({});
                 }
               }}
               className="text-slate-400 hover:text-rose-300 text-xs flex items-center gap-1 transition"
@@ -681,6 +828,97 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
                           <span
                             className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${
                               aprueba ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
+                            }`}
+                          >
+                            {aprueba ? 'Aprobado' : 'Reprobado'}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : modo === 'rubrica' ? (
+            /* =================== MODO 3: RÚBRICA POR APARTADOS =================== */
+            <div className="rounded-xl border border-slate-700/80 overflow-x-auto shadow-sm">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-slate-800 text-slate-300 uppercase font-bold text-[10px] tracking-wider border-b border-slate-700">
+                  <tr>
+                    <th className="py-3 px-4 min-w-[180px]">Estudiante</th>
+                    <th className="py-3 px-3 text-center">Código</th>
+                    {criteriosRubrica.map(crit => (
+                      <th key={crit.id} className="py-3 px-3 text-center min-w-[120px] border-l border-slate-700/70">
+                        <div className="truncate max-w-[140px] mx-auto" title={crit.nombre}>
+                          {crit.nombre || 'Apartado'}
+                        </div>
+                        <div className="text-[10px] text-sky-400 font-semibold mt-0.5">
+                          Peso: {crit.pesoPorcentaje}%
+                        </div>
+                      </th>
+                    ))}
+                    <th className="py-3 px-4 text-center border-l border-slate-700/70">Nota Calculada</th>
+                    <th className="py-3 px-3 text-center">Estado</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/70">
+                  {estudiantes.map(est => {
+                    const nota = calcularNota(est.id);
+                    const aprueba = nota >= config.notaAprobatoria;
+                    return (
+                      <tr key={est.id} className="hover:bg-slate-800/40 transition-colors">
+                        <td className="py-2.5 px-4 font-medium text-slate-200">
+                          {est.apellido}, {est.nombre}
+                        </td>
+                        <td className="py-2.5 px-3 text-center text-slate-400 font-mono">
+                          {est.codigo}
+                        </td>
+                        {criteriosRubrica.map(crit => {
+                          const valor = notasRubrica[est.id]?.[crit.id];
+                          return (
+                            <td key={crit.id} className="py-2 px-2 text-center border-l border-slate-800/70">
+                              <input
+                                type="number"
+                                step="0.1"
+                                min={config.minNota}
+                                max={config.maxNota}
+                                value={valor !== undefined ? valor : ''}
+                                onChange={e => {
+                                  const raw = parseFloat(e.target.value);
+                                  const clamped = isNaN(raw)
+                                    ? config.minNota
+                                    : Math.min(config.maxNota, Math.max(config.minNota, raw));
+                                  setNotasRubrica(prev => ({
+                                    ...prev,
+                                    [est.id]: {
+                                      ...(prev[est.id] || {}),
+                                      [crit.id]: e.target.value === '' ? config.minNota : clamped,
+                                    },
+                                  }));
+                                }}
+                                placeholder={String(config.minNota)}
+                                className="w-20 px-2 py-1 bg-slate-900 border border-slate-700 rounded-lg text-xs text-center font-bold text-slate-100 outline-none focus:border-sky-500"
+                              />
+                            </td>
+                          );
+                        })}
+                        <td className="py-2.5 px-4 text-center border-l border-slate-800/70">
+                          <span
+                            className={`inline-block px-2.5 py-0.5 rounded-lg text-xs font-black border ${
+                              aprueba
+                                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                                : 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                            }`}
+                          >
+                            {nota.toFixed(2)}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-center">
+                          <span
+                            className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${
+                              aprueba
+                                ? 'bg-emerald-500/20 text-emerald-400'
+                                : 'bg-rose-500/20 text-rose-400'
                             }`}
                           >
                             {aprueba ? 'Aprobado' : 'Reprobado'}
