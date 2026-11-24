@@ -20,10 +20,10 @@ jobs:
         include:
           - os: ubuntu-22.04
             platform: linux
-            artifact_name: Evaluador-v0.1-linux-x86_64.AppImage
+            artifact_name: EvMIM.AppImage
           - os: windows-latest
             platform: windows
-            artifact_name: Evaluador-v0.1-portable-windows-x64.exe
+            artifact_name: EvMIM.exe
 
     runs-on: ${{ matrix.os }}
 
@@ -90,7 +90,7 @@ jobs:
         run: |
           mkdir -p dist-bin
           # En Windows, el binario compilado en release es un ejecutable autónomo y portable
-          EXE_FILE="src-tauri/target/release/Evaluador.exe"
+          EXE_FILE="src-tauri/target/release/EvMIM.exe"
           if [ ! -f "$EXE_FILE" ]; then
             EXE_FILE=$(find src-tauri/target/release -maxdepth 1 -name "*.exe" ! -name "*build*" ! -name "*setup*" | head -n 1)
           fi
@@ -127,18 +127,18 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: Evaluador ${{ github.ref_name }}
+          name: EvMIM ${{ github.ref_name }}
           tag_name: ${{ github.ref_name }}
           draft: false
           prerelease: false
           files: |
-            release-artifacts/Evaluador-v0.1-linux-x86_64.AppImage/Evaluador-v0.1-linux-x86_64.AppImage
-            release-artifacts/Evaluador-v0.1-portable-windows-x64.exe/Evaluador-v0.1-portable-windows-x64.exe
+            release-artifacts/EvMIM.AppImage/EvMIM.AppImage
+            release-artifacts/EvMIM.exe/EvMIM.exe
           body: |
-            ## Evaluador ${{ github.ref_name }} - Versión Oficial
+            ## EvMIM ${{ github.ref_name }} - Versión Oficial
             
             Sistema de Calificaciones y Gestión Académica de Cursos y Notas.
             
             ### Descargas disponibles:
-            - **Windows (Portable .exe)**: `Evaluador-v0.1-portable-windows-x64.exe` (No requiere instalación, doble clic y ejecutar)
-            - **Linux (.AppImage)**: `Evaluador-v0.1-linux-x86_64.AppImage` (Ejecutable portable para cualquier distribución de Linux)
+            - **Windows (Portable .exe)**: `EvMIM.exe` (No requiere instalación, doble clic y ejecutar)
+            - **Linux (.AppImage)**: `EvMIM.AppImage` (Ejecutable portable para cualquier distribución de Linux)

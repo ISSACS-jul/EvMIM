@@ -75,6 +75,7 @@ export function aplicarEscalaUI(factor: number) {
   const baseSize = 16;
   const targetPx = Math.round(baseSize * factor);
   document.documentElement.style.fontSize = `${targetPx}px`;
+  document.documentElement.style.setProperty('--ui-scale', String(factor));
   localStorage.setItem('evaluador_ui_scale', String(factor));
 }
 
