@@ -212,7 +212,7 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
 
   if (estudiantes.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-base-500">
+      <div className="flex flex-col items-center justify-center py-20 text-slate-500">
         <p className="text-lg font-semibold">Sin estudiantes en este curso</p>
         <p className="text-sm mt-1">Agrega estudiantes desde el apartado "Estudiantes"</p>
       </div>
@@ -221,7 +221,7 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
 
   if (actividades.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-base-500">
+      <div className="flex flex-col items-center justify-center py-20 text-slate-500">
         <p className="text-lg font-semibold">Sin actividades en el Periodo {periodo}</p>
         <p className="text-sm mt-1">Crea actividades desde el apartado "Actividades"</p>
       </div>
@@ -245,12 +245,12 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
         </div>
       )}
 
-      <div className="flex items-center justify-between text-xs text-base-400 mb-2 px-1">
+      <div className="flex items-center justify-between text-xs text-slate-400 mb-2 px-1">
         <div className="flex items-center gap-1.5">
-          <ClipboardPaste className="w-3.5 h-3.5 text-accent-light" />
+          <ClipboardPaste className="w-3.5 h-3.5 text-sky-400" />
           <span>
             Tip Excel: Copia una columna de notas en Excel y presiona{' '}
-            <kbd className="px-1.5 py-0.5 bg-base-800 border border-base-600 rounded text-accent-light font-mono font-semibold">
+            <kbd className="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-sky-300 font-mono font-semibold">
               Ctrl + V
             </kbd>{' '}
             sobre cualquier celda para rellenar hacia abajo automáticamente.
@@ -259,7 +259,7 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
       </div>
 
       <div
-        className="planilla-container rounded-xl border border-base-600 overflow-auto max-h-[calc(100vh-220px)] outline-none"
+        className="planilla-container rounded-xl border border-slate-700 overflow-auto max-h-[calc(100vh-220px)] outline-none"
         tabIndex={0}
         onPaste={e => {
           if (celdaSeleccionada && !celdaEditando) {
@@ -275,30 +275,30 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
           <thead>
             {/* Fila 1: grupos de categorías */}
             <tr>
-              <th className="sticky-col bg-base-900 border-b border-r border-base-600 px-2 py-2 text-center text-base-400 font-semibold w-8">#</th>
-              <th className="sticky-col-2 bg-base-900 border-b border-r border-base-600 px-3 py-2 text-left text-base-300 font-semibold min-w-[160px]">Estudiante</th>
+              <th className="sticky-col bg-slate-900 border-b border-r border-slate-700 px-2 py-2 text-center text-slate-400 font-semibold w-8">#</th>
+              <th className="sticky-col-2 bg-slate-900 border-b border-r border-slate-700 px-3 py-2 text-left text-slate-300 font-semibold min-w-[160px]">Estudiante</th>
               {categoriasCon.map(cat => {
                 const actsDeCategoria = actividades.filter(a => a.categoriaId === cat.id);
                 return (
                   <th
                     key={cat.id}
                     colSpan={actsDeCategoria.length + 1} // +1 por DEF
-                    className="border-b border-r border-base-600 px-2 py-1.5 text-center font-bold uppercase tracking-wide"
+                    className="border-b border-r border-slate-700 px-2 py-1.5 text-center font-bold uppercase tracking-wide"
                     style={{ backgroundColor: cat.color + '33', color: cat.color }}
                   >
                     {cat.nombre} ({cat.pesoPorcentaje}%)
                   </th>
                 );
               })}
-              <th className="border-b border-base-600 px-3 py-1.5 text-center font-bold text-purple-300 bg-purple-500/20 min-w-[70px]">
+              <th className="border-b border-slate-700 px-3 py-1.5 text-center font-bold text-purple-300 bg-purple-500/20 min-w-[70px]">
                 FINAL
               </th>
             </tr>
 
             {/* Fila 2: nombres de actividades */}
-            <tr className="bg-base-800/50">
-              <th className="sticky-col bg-base-800 border-b border-r border-base-600 px-2 py-2"></th>
-              <th className="sticky-col-2 bg-base-800 border-b border-r border-base-600 px-3 py-2 text-base-400 text-left">Apellido, Nombre</th>
+            <tr className="bg-slate-800/50">
+              <th className="sticky-col bg-slate-800 border-b border-r border-slate-700 px-2 py-2"></th>
+              <th className="sticky-col-2 bg-slate-800 border-b border-r border-slate-700 px-3 py-2 text-slate-400 text-left">Apellido, Nombre</th>
               {categoriasCon.map(cat => {
                 const actsDeCategoria = actividades.filter(a => a.categoriaId === cat.id);
                 return (
@@ -306,32 +306,32 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
                     {actsDeCategoria.map((act, idx) => (
                       <th
                         key={act.id}
-                        className="border-b border-r border-base-600 px-2 py-1 text-center text-base-300 font-medium max-w-[64px]"
+                        className="border-b border-r border-slate-700 px-2 py-1 text-center text-slate-300 font-medium max-w-[64px]"
                         title={`${act.titulo}\n${act.descripcion || ''}\nFecha: ${act.fechaActividad}`}
                       >
                         <span className="block truncate max-w-[60px]" title={act.titulo}>
                           #{idx + 1}
                         </span>
-                        <span className="block text-base-500 font-normal truncate max-w-[60px]" title={act.titulo}>
+                        <span className="block text-slate-500 font-normal truncate max-w-[60px]" title={act.titulo}>
                           {act.titulo.slice(0, 8)}
                         </span>
                       </th>
                     ))}
-                    <th className="border-b border-r border-base-600 px-2 py-1 text-center font-bold text-base-200 bg-base-700/50">
+                    <th className="border-b border-r border-slate-700 px-2 py-1 text-center font-bold text-slate-200 bg-slate-700/50">
                       DEF
                     </th>
                   </React.Fragment>
                 );
               })}
-              <th className="border-b border-base-600 px-2 py-1 text-center font-bold text-purple-300 bg-purple-500/10">∑</th>
+              <th className="border-b border-slate-700 px-2 py-1 text-center font-bold text-purple-300 bg-purple-500/10">∑</th>
             </tr>
           </thead>
 
           <tbody>
             {/* Fila de promedios del curso (cabecera de promedios) */}
-            <tr className="bg-base-800 border-b border-base-600">
-              <td className="sticky-col bg-base-800 border-r border-base-600 px-2 py-1.5 text-base-500 text-center font-bold">x̄</td>
-              <td className="sticky-col-2 bg-base-800 border-r border-base-600 px-3 py-1.5 text-base-400 font-semibold italic">Promedio del curso</td>
+            <tr className="bg-slate-800 border-b border-slate-700">
+              <td className="sticky-col bg-slate-800 border-r border-slate-700 px-2 py-1.5 text-slate-500 text-center font-bold">x̄</td>
+              <td className="sticky-col-2 bg-slate-800 border-r border-slate-700 px-3 py-1.5 text-slate-400 font-semibold italic">Promedio del curso</td>
               {categoriasCon.map(cat => {
                 const actsDeCategoria = actividades.filter(a => a.categoriaId === cat.id);
                 return (
@@ -339,12 +339,12 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
                     {actsDeCategoria.map(act => {
                       const p = promActividad(act.id);
                       return (
-                        <td key={act.id} className={`border-r border-base-600 px-2 py-1.5 text-center font-bold ${getNotaColor(p)}`}>
+                        <td key={act.id} className={`border-r border-slate-700 px-2 py-1.5 text-center font-bold ${getNotaColor(p)}`}>
                           {p !== null ? p.toFixed(1) : '—'}
                         </td>
                       );
                     })}
-                    <td className="border-r border-base-600 px-2 py-1.5 text-center font-bold bg-base-700/40">
+                    <td className="border-r border-slate-700 px-2 py-1.5 text-center font-bold bg-slate-700/40">
                       <span className={getNotaColor(promDefCat(cat.id))}>
                         {promDefCat(cat.id) !== null ? promDefCat(cat.id)!.toFixed(1) : '—'}
                       </span>
@@ -365,17 +365,17 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
             {estudiantes.map((est, idx) => {
               const finalEst = promFinal(est.id);
               return (
-                <tr key={est.id} className="border-b border-base-600/50 hover:bg-base-800/60 transition-colors group">
-                  <td className="sticky-col bg-base-900 group-hover:bg-base-800/60 border-r border-base-600 px-2 py-1.5 text-center text-base-500 font-mono">
+                <tr key={est.id} className="border-b border-slate-700/50 hover:bg-slate-800/60 transition-colors group">
+                  <td className="sticky-col bg-slate-900 group-hover:bg-slate-800/60 border-r border-slate-700 px-2 py-1.5 text-center text-slate-500 font-mono">
                     {idx + 1}
                   </td>
                   <td
-                    className="sticky-col-2 bg-base-900 group-hover:bg-base-800/60 border-r border-base-600 px-3 py-1.5 text-base-200 font-medium cursor-pointer hover:text-accent-light transition-colors"
+                    className="sticky-col-2 bg-slate-900 group-hover:bg-slate-800/60 border-r border-slate-700 px-3 py-1.5 text-slate-200 font-medium cursor-pointer hover:text-sky-400 transition-colors"
                     onClick={() => setFichaEstudianteId(est.id)}
                     title="Ver ficha completa del estudiante"
                   >
                     {est.apellido}, {est.nombre}
-                    <span className="text-base-500 text-xs ml-2">{est.codigo}</span>
+                    <span className="text-slate-500 text-xs ml-2">{est.codigo}</span>
                   </td>
 
                   {categoriasCon.map(cat => {
@@ -391,8 +391,8 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
                           return (
                             <td
                               key={act.id}
-                              className={`border-r border-base-600/50 px-1 py-1 text-center cursor-pointer transition ${
-                                isSelected ? 'ring-2 ring-sky-400 bg-accent-light/20' : ''
+                              className={`border-r border-slate-700/50 px-1 py-1 text-center cursor-pointer transition ${
+                                isSelected ? 'ring-2 ring-sky-400 bg-sky-500/20' : ''
                               }`}
                               onClick={() => {
                                 setCeldaSeleccionada({ estudianteId: est.id, actividadId: act.id });
@@ -418,10 +418,10 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
                                   max={config.maxNota}
                                   step="0.1"
                                   autoFocus
-                                  className="w-14 text-center bg-sky-900 border border-accent rounded text-accent-light text-xs py-0.5 outline-none font-bold"
+                                  className="w-14 text-center bg-sky-900 border border-sky-500 rounded text-sky-200 text-xs py-0.5 outline-none font-bold"
                                 />
                               ) : (
-                                <span className={`inline-block w-12 py-0.5 rounded text-xs font-semibold ${cal ? getNotaBg(cal.nota) : 'text-base-600 hover:bg-base-700/50 hover:text-base-400'}`}>
+                                <span className={`inline-block w-12 py-0.5 rounded text-xs font-semibold ${cal ? getNotaBg(cal.nota) : 'text-slate-600 hover:bg-slate-700/50 hover:text-slate-400'}`}>
                                   {cal ? cal.nota.toFixed(1) : '·'}
                                 </span>
                               )}
@@ -430,7 +430,7 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
                         })}
                         {/* DEF de la categoría */}
                         <td
-                          className="border-r border-base-600 px-2 py-1.5 text-center font-bold cursor-pointer bg-base-800/40 hover:bg-base-700/40"
+                          className="border-r border-slate-700 px-2 py-1.5 text-center font-bold cursor-pointer bg-slate-800/40 hover:bg-slate-700/40"
                           onClick={() => setFichaEstudianteId(est.id)}
                         >
                           <span className={`text-sm ${getNotaColor(pCat)}`}>

@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { ConfiguracionSistema, CategoriaEvaluacion } from '../types';
+import { ConfiguracionSistema, CategoriaEvaluacion, TemaVisual } from '../types';
 import { DatabaseService } from '../services/db';
+import { TEMAS_INFO, ESCALAS_UI, aplicarTemaVisual, aplicarEscalaUI } from '../services/theme';
 import {
   Save,
   Plus,
@@ -12,6 +13,9 @@ import {
   Upload,
   Database,
   Paperclip,
+  Palette,
+  Maximize2,
+  Check,
 } from 'lucide-react';
 
 interface SettingsModalProps {
@@ -27,10 +31,39 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
   const [backupStatus, setBackupStatus] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [temaActivo, setTemaActivo] = useState<TemaVisual>(
+    config.temaVisual || (localStorage.getItem('evaluador_tema_visual') as TemaVisual) || 'default'
+  );
+  const [escalaActiva, setEscalaActiva] = useState<number>(
+    config.escalaUI || Number(localStorage.getItem('evaluador_ui_scale')) || 1
+  );
+
   if (!isOpen) return null;
 
   const sumaPesosCategorias = categorias.reduce((sum, c) => sum + Number(c.pesoPorcentaje || 0), 0);
   const sumaPesosPeriodos = config.pesosPeriodos.reduce((sum, p) => sum + Number(p || 0), 0);
+
+  const handleCambiarTema = (tema: TemaVisual) => {
+    setTemaActivo(tema);
+    setConfig(prev => ({ ...prev, temaVisual: tema }));
+    aplicarTemaVisual(tema);
+    // Guardado inmediato en base de datos para que no dependa del botón "Guardar Parámetros"
+    const currentCfg = DatabaseService.getConfiguracion();
+    DatabaseService.saveConfiguracion({ ...currentCfg, temaVisual: tema });
+  };
+
+  const handleCambiarEscala = (factor: number) => {
+    setEscalaActiva(factor);
+    setConfig(prev => ({ ...prev, escalaUI: factor }));
+    aplicarEscalaUI(factor);
+    // Guardado inmediato en base de datos
+    const currentCfg = DatabaseService.getConfiguracion();
+    DatabaseService.saveConfiguracion({ ...currentCfg, escalaUI: factor });
+  };
+
+  const handleCancelar = () => {
+    onClose();
+  };
 
   const handleUpdateCategoria = (index: number, campo: keyof CategoriaEvaluacion, valor: any) => {
     const updated = [...categorias];
@@ -55,10 +88,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
       setMensaje({ tipo: 'error', texto: `Los pesos de periodos deben sumar 100% (actual: ${sumaPesosPeriodos}%)` });
       return;
     }
-    DatabaseService.saveConfiguracion(config);
+    const configFinal: ConfiguracionSistema = {
+      ...config,
+      temaVisual: temaActivo,
+      escalaUI: escalaActiva,
+    };
+    DatabaseService.saveConfiguracion(configFinal);
     DatabaseService.saveCategorias(categorias);
     setMensaje({ tipo: 'ok', texto: '¡Configuración guardada!' });
-    setTimeout(() => { onSaved(); onClose(); }, 900);
+    setTimeout(() => { onSaved(); onClose(); }, 700);
   };
 
   // Exportar Copia de Seguridad (Backup)
@@ -153,30 +191,143 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
     e.target.value = '';
   };
 
-  const input = "w-full px-3 py-2 bg-base-950 border border-base-600 rounded-md text-sm text-base-200 focus:ring-1 focus:ring-accent focus:border-accent outline-none transition-colors";
+  const input = "w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-sm text-slate-100 focus:ring-2 focus:ring-sky-500 outline-none";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-base-900 border border-base-600 rounded-xl shadow-modal max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-5 border-b border-base-600 pb-3">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
+      <div className="bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-6 border-b border-slate-700 pb-3">
           <div>
-            <h2 className="text-base font-semibold text-base-100">Parámetros del Sistema</h2>
-            <p className="text-xs text-base-500 mt-0.5">Escala de notas, periodos, categorías y pesos</p>
+            <h2 className="text-xl font-bold text-slate-100">Parámetros del Sistema</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Escala de notas, periodos, categorías y pesos</p>
           </div>
-          <button onClick={onClose} className="text-base-500 hover:text-base-200 transition p-1 rounded hover:bg-base-700"><X className="w-4 h-4" /></button>
+          <button onClick={handleCancelar} className="text-slate-500 hover:text-slate-200 transition p-1"><X className="w-5 h-5" /></button>
         </div>
 
         {mensaje && (
-          <div className={`p-3 rounded-md mb-4 flex items-center gap-2 text-sm ${mensaje.tipo === 'ok' ? 'bg-ok/10 text-ok border border-ok/30' : 'bg-error/10 text-error border border-error/30'}`}>
-            {mensaje.tipo === 'ok' ? <CheckCircle className="w-4 h-4 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 flex-shrink-0" />}
+          <div className={`p-3 rounded-lg mb-4 flex items-center gap-2 text-sm ${mensaje.tipo === 'ok' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'}`}>
+            {mensaje.tipo === 'ok' ? <CheckCircle className="w-5 h-5 flex-shrink-0" /> : <AlertCircle className="w-5 h-5 flex-shrink-0" />}
             <span>{mensaje.texto}</span>
           </div>
         )}
 
-        <div className="space-y-4">
+        <div className="space-y-5">
+          {/* 1. Apariencia y Escala Visual */}
+          <section className="bg-slate-900/60 p-4 rounded-xl border border-slate-700">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <Palette className="w-4 h-4 text-sky-400" />
+                <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  1. Tema Visual y Escala de Interfaz
+                </h3>
+              </div>
+              <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full font-medium">
+                ✓ Se aplica y guarda al instante con un clic
+              </span>
+            </div>
+
+            {/* Selector de Temas */}
+            <div className="mb-4">
+              <label className="text-xs font-semibold text-slate-400 block mb-2">
+                Tema de Color de la Aplicación:
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {TEMAS_INFO.map(t => {
+                  const seleccionado = temaActivo === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => handleCambiarTema(t.id)}
+                      className={`p-3 rounded-xl border text-left transition relative flex flex-col justify-between ${
+                        seleccionado
+                          ? 'bg-sky-500/15 border-sky-500 ring-2 ring-sky-500/30'
+                          : 'bg-slate-800/80 border-slate-700 hover:border-slate-500 hover:bg-slate-800'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-2">
+                          {/* Muestras de color */}
+                          <div className="flex items-center -space-x-1">
+                            <span
+                              className="w-4 h-4 rounded-full border border-black/40 shadow-sm"
+                              style={{ backgroundColor: t.previewBg }}
+                              title="Fondo principal"
+                            />
+                            <span
+                              className="w-4 h-4 rounded-full border border-black/40 shadow-sm"
+                              style={{ backgroundColor: t.previewCard }}
+                              title="Superficie de tarjetas"
+                            />
+                            <span
+                              className="w-4 h-4 rounded-full border border-white/40 shadow-sm"
+                              style={{ backgroundColor: t.previewAccent }}
+                              title="Acentos y botones"
+                            />
+                          </div>
+                          <span className={`text-xs font-bold ${seleccionado ? 'text-sky-300' : 'text-slate-200'}`}>
+                            {t.nombre}
+                          </span>
+                        </div>
+                        {seleccionado && (
+                          <span className="flex items-center gap-0.5 text-[10px] font-bold text-sky-400 bg-sky-500/20 px-1.5 py-0.5 rounded-full">
+                            <Check className="w-3 h-3" /> Activo
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-tight">
+                        {t.descripcion}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Selector de Escala de UI */}
+            <div className="pt-3 border-t border-slate-700/60">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1.5">
+                  <Maximize2 className="w-3.5 h-3.5 text-sky-400" />
+                  <label className="text-xs font-semibold text-slate-400">
+                    Escala de UI (Tamaño de la interfaz sin zoom):
+                  </label>
+                </div>
+                <span className="text-[11px] font-bold text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded">
+                  x{escalaActiva} ({ESCALAS_UI.find(e => e.factor === escalaActiva)?.desc || 'Personalizada'})
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 mb-2.5">
+                Escala matemáticamente las fuentes, botones, campos y planillas de forma vectorial y nítida.
+              </p>
+              <div className="grid grid-cols-5 gap-1.5">
+                {ESCALAS_UI.map(e => {
+                  const activo = escalaActiva === e.factor;
+                  return (
+                    <button
+                      key={e.factor}
+                      type="button"
+                      onClick={() => handleCambiarEscala(e.factor)}
+                      className={`py-2 px-1 rounded-xl text-xs font-bold transition flex flex-col items-center justify-center ${
+                        activo
+                          ? 'bg-sky-600 text-white shadow-md ring-2 ring-sky-400/40'
+                          : 'bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 hover:text-white'
+                      }`}
+                    >
+                      <span className="text-sm">{e.label}</span>
+                      <span className={`text-[9px] font-normal ${activo ? 'text-sky-100' : 'text-slate-400'}`}>
+                        {e.desc}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+
           {/* Escala */}
-          <section className="bg-base-800 p-4 rounded-lg border border-base-600">
-            <h3 className="text-xs font-semibold text-base-500 uppercase tracking-wider mb-3">1. Escala de Calificaciones</h3>
+          <section className="bg-slate-900/60 p-4 rounded-xl border border-slate-700">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">2. Escala de Calificaciones</h3>
             <div className="grid grid-cols-3 gap-3">
               {[
                 { label: 'Nota Mínima', key: 'minNota' as const },
@@ -184,7 +335,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                 { label: 'Nota Máxima', key: 'maxNota' as const },
               ].map(f => (
                 <div key={f.key}>
-                  <label className="text-xs font-medium text-base-400 block mb-1">{f.label}</label>
+                  <label className="text-xs font-medium text-slate-500 block mb-1">{f.label}</label>
                   <input type="number" step="0.1" value={config[f.key]}
                     onChange={e => setConfig({ ...config, [f.key]: parseFloat(e.target.value) || 0 })}
                     className={input} />
@@ -193,185 +344,235 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
             </div>
           </section>
 
-          {/* Rangos de Desempeño */}
-          <section className="bg-base-800 p-4 rounded-lg border border-base-600">
-            <h3 className="text-xs font-semibold text-base-500 uppercase tracking-wider mb-2">
-              2. Rangos de Desempeño (Escala Analítica)
+          {/* Rangos de Desempeño Institucional (Bajo, Básico, Alto, Superior) */}
+          <section className="bg-slate-900/60 p-4 rounded-xl border border-slate-700">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+              3. Rangos de Desempeño (Escala Analítica)
             </h3>
-            <p className="text-xs text-base-500 mb-3">
-              Personaliza los límites para clasificar a los estudiantes en Bajo, Básico, Alto y Superior.
+            <p className="text-xs text-slate-500 mb-3">
+              Personaliza los límites para clasificar a los estudiantes en Bajo, Básico, Alto y Superior en las analíticas y gráficos.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="bg-base-950 p-3 rounded-md border border-error/30">
-                <span className="text-xs font-semibold text-error block mb-1">Desempeño Bajo</span>
-                <span className="text-[11px] text-base-500 block mb-2">Desde {config.minNota} hasta:</span>
-                <input type="number" step="0.1"
+              <div className="bg-slate-800/80 p-3 rounded-lg border border-rose-500/30">
+                <span className="text-xs font-bold text-rose-400 block mb-1">Desempeño Bajo</span>
+                <span className="text-[11px] text-slate-400 block mb-2">Desde {config.minNota} hasta:</span>
+                <input
+                  type="number"
+                  step="0.1"
                   value={config.rangoBajoMax !== undefined ? config.rangoBajoMax : (config.notaAprobatoria - 0.1)}
                   onChange={e => setConfig({ ...config, rangoBajoMax: parseFloat(e.target.value) || 0 })}
-                  className={input} />
+                  className={input}
+                />
               </div>
-              <div className="bg-base-950 p-3 rounded-md border border-warn/30">
-                <span className="text-xs font-semibold text-warn block mb-1">Desempeño Básico</span>
-                <span className="text-[11px] text-base-500 block mb-2">Aprobatorio hasta:</span>
-                <input type="number" step="0.1"
+              <div className="bg-slate-800/80 p-3 rounded-lg border border-amber-500/30">
+                <span className="text-xs font-bold text-amber-400 block mb-1">Desempeño Básico</span>
+                <span className="text-[11px] text-slate-400 block mb-2">Aprobatorio hasta:</span>
+                <input
+                  type="number"
+                  step="0.1"
                   value={config.rangoBasicoMax !== undefined ? config.rangoBasicoMax : 3.9}
                   onChange={e => setConfig({ ...config, rangoBasicoMax: parseFloat(e.target.value) || 0 })}
-                  className={input} />
+                  className={input}
+                />
               </div>
-              <div className="bg-base-950 p-3 rounded-md border border-accent/30">
-                <span className="text-xs font-semibold text-accent-light block mb-1">Desempeño Alto</span>
-                <span className="text-[11px] text-base-500 block mb-2">Hasta:</span>
-                <input type="number" step="0.1"
+              <div className="bg-slate-800/80 p-3 rounded-lg border border-sky-500/30">
+                <span className="text-xs font-bold text-sky-400 block mb-1">Desempeño Alto</span>
+                <span className="text-[11px] text-slate-400 block mb-2">Hasta:</span>
+                <input
+                  type="number"
+                  step="0.1"
                   value={config.rangoAltoMax !== undefined ? config.rangoAltoMax : 4.5}
                   onChange={e => setConfig({ ...config, rangoAltoMax: parseFloat(e.target.value) || 0 })}
-                  className={input} />
+                  className={input}
+                />
               </div>
             </div>
-            <div className="mt-2 text-xs text-ok font-medium bg-ok/10 border border-ok/20 p-2 rounded-md">
-              ★ <b>Desempeño Superior:</b> Notas superiores a {config.rangoAltoMax !== undefined ? config.rangoAltoMax : 4.5} hasta {config.maxNota}.
+            <div className="mt-2 text-xs text-emerald-400/90 font-medium bg-emerald-950/40 border border-emerald-500/30 p-2 rounded-lg">
+              ★ <b>Desempeño Superior:</b> Abarca automáticamente notas superiores a {config.rangoAltoMax !== undefined ? config.rangoAltoMax : 4.5} hasta {config.maxNota}.
             </div>
           </section>
 
           {/* Periodos */}
-          <section className="bg-base-800 p-4 rounded-lg border border-base-600">
+          <section className="bg-slate-900/60 p-4 rounded-xl border border-slate-700">
             <div className="flex justify-between items-center mb-3">
-              <h3 className="text-xs font-semibold text-base-500 uppercase tracking-wider">3. Periodos Escolares</h3>
-              <span className={`text-xs font-semibold px-2 py-0.5 rounded ${sumaPesosPeriodos === 100 ? 'bg-ok/10 text-ok' : 'bg-error/10 text-error'}`}>
-                Suma: {sumaPesosPeriodos}% {sumaPesosPeriodos === 100 ? '✓' : '⚠'}
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">4. Periodos Escolares</h3>
+              <span className={`text-xs font-bold px-2 py-1 rounded ${sumaPesosPeriodos === 100 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                Suma: {sumaPesosPeriodos}% {sumaPesosPeriodos === 100 ? '✓' : '⚠️'}
               </span>
             </div>
             <div className="flex items-center gap-3 mb-3">
-              <label className="text-xs text-base-400 font-medium">Cantidad:</label>
+              <label className="text-xs text-slate-400 font-semibold">Cantidad:</label>
               <select
                 value={config.periodosCount}
                 onChange={e => handlePeriodosCountChange(parseInt(e.target.value))}
-                className="bg-base-950 border border-base-600 rounded-md px-3 py-1.5 text-sm text-base-200 outline-none focus:ring-1 focus:ring-accent cursor-pointer"
+                className="bg-slate-800 border border-slate-600 rounded-xl px-3 py-1.5 text-sm text-slate-100 outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
               >
                 {[1, 2, 3, 4, 5, 6].map(n => (
-                  <option key={n} value={n}>{n} periodo{n > 1 ? 's' : ''}</option>
+                  <option key={n} value={n} className="bg-slate-800 text-slate-100">
+                    {n} periodo{n > 1 ? 's' : ''}
+                  </option>
                 ))}
               </select>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {config.pesosPeriodos.map((peso, i) => (
-                <div key={i} className="bg-base-950 p-2.5 rounded-md border border-base-600">
-                  <span className="text-xs text-base-500 block">Periodo {i + 1} (%)</span>
+                <div key={i} className="bg-slate-800 p-2.5 rounded-lg border border-slate-700">
+                  <span className="text-xs text-slate-500 block">Periodo {i + 1} (%)</span>
                   <input type="number" value={peso}
                     onChange={e => { const p = [...config.pesosPeriodos]; p[i] = parseFloat(e.target.value) || 0; setConfig({ ...config, pesosPeriodos: p }); }}
-                    className="w-full mt-1 px-2 py-1 bg-base-800 border border-base-600 rounded text-sm text-base-200 text-center outline-none" />
+                    className="w-full mt-1 px-2 py-1 bg-slate-700 border border-slate-600 rounded text-sm text-slate-100 text-center outline-none" />
                 </div>
               ))}
             </div>
           </section>
 
           {/* Categorías */}
-          <section className="bg-base-800 p-4 rounded-lg border border-base-600">
+          <section className="bg-slate-900/60 p-4 rounded-xl border border-slate-700">
             <div className="flex justify-between items-center mb-3">
-              <h3 className="text-xs font-semibold text-base-500 uppercase tracking-wider">4. Etiquetas y Pesos</h3>
-              <span className={`text-xs font-semibold px-2 py-0.5 rounded ${sumaPesosCategorias === 100 ? 'bg-ok/10 text-ok' : 'bg-error/10 text-error'}`}>
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">5. Etiquetas y Pesos</h3>
+              <span className={`text-xs font-bold px-2 py-1 rounded ${sumaPesosCategorias === 100 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
                 Total: {sumaPesosCategorias}% {sumaPesosCategorias === 100 ? '✓' : '(debe ser 100%)'}
               </span>
             </div>
             <div className="space-y-2">
               {categorias.map((cat, idx) => (
-                <div key={cat.id} className="flex items-center gap-2 bg-base-950 p-2.5 rounded-md border border-base-600">
+                <div key={cat.id} className="flex items-center gap-2 bg-slate-800 p-2.5 rounded-lg border border-slate-700">
                   <input type="color" value={cat.color} onChange={e => handleUpdateCategoria(idx, 'color', e.target.value)}
-                    className="w-7 h-7 rounded border-none cursor-pointer flex-shrink-0 bg-transparent" />
+                    className="w-8 h-8 rounded border-none cursor-pointer flex-shrink-0 bg-transparent" />
                   <input type="text" value={cat.nombre} onChange={e => handleUpdateCategoria(idx, 'nombre', e.target.value)}
-                    className="flex-1 px-2 py-1 bg-base-800 border border-base-600 rounded text-sm text-base-200 outline-none focus:ring-1 focus:ring-accent" />
+                    className="flex-1 px-2 py-1 bg-slate-700 border border-slate-600 rounded text-sm text-slate-100 outline-none focus:ring-2 focus:ring-sky-500" />
                   <div className="flex items-center gap-1">
                     <input type="number" value={cat.pesoPorcentaje} onChange={e => handleUpdateCategoria(idx, 'pesoPorcentaje', parseFloat(e.target.value) || 0)}
-                      className="w-14 px-2 py-1 bg-base-800 border border-base-600 rounded text-sm text-base-200 text-center outline-none" />
-                    <span className="text-xs text-base-500">%</span>
+                      className="w-16 px-2 py-1 bg-slate-700 border border-slate-600 rounded text-sm text-slate-100 text-center outline-none" />
+                    <span className="text-xs text-slate-500">%</span>
                   </div>
                   <button onClick={() => { if (categorias.length > 1) setCategorias(categorias.filter((_, i) => i !== idx)); }}
-                    className="text-base-600 hover:text-error transition p-1 rounded">
-                    <Trash2 className="w-3.5 h-3.5" />
+                    className="text-slate-600 hover:text-rose-400 transition p-1">
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               ))}
             </div>
             <button
-              onClick={() => setCategorias([...categorias, { id: 'cat_' + Date.now(), nombre: 'Nueva categoría', pesoPorcentaje: 10, color: '#388bfd' }])}
-              className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-accent-light hover:text-white bg-accent-subtle hover:bg-accent/20 px-3 py-1.5 rounded-md transition-colors"
+              onClick={() => setCategorias([...categorias, { id: 'cat_' + Date.now(), nombre: 'Nueva categoría', pesoPorcentaje: 10, color: '#6366f1' }])}
+              className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-sky-400 hover:text-sky-300 bg-sky-500/10 hover:bg-sky-500/20 px-3 py-1.5 rounded-lg transition"
             >
-              <Plus className="w-3.5 h-3.5" /> Agregar Categoría
+              <Plus className="w-4 h-4" /> Agregar Categoría
             </button>
           </section>
 
-          {/* Copia de Seguridad */}
-          <section className="bg-base-800 p-4 rounded-lg border border-base-600">
-            <div className="flex items-center gap-2 mb-2">
-              <Database className="w-3.5 h-3.5 text-accent-light" />
-              <h3 className="text-xs font-semibold text-base-500 uppercase tracking-wider">5. Copias de Seguridad</h3>
+          {/* Copia de Seguridad y Restauración */}
+          <section className="bg-slate-900/60 p-4 rounded-xl border border-slate-700">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                <Database className="w-4 h-4 text-sky-400" /> 6. Copia de Seguridad y Gestión de Archivos Adjuntos
+              </h3>
             </div>
-            <p className="text-xs text-base-500 mb-4">
-              Exporta o importa tus datos localmente para hacer respaldo.
+            <p className="text-xs text-slate-400 mb-4">
+              Exporta tus datos estructurados en formato ligero sin archivos pesados base64, respalda con adjuntos o descarga los documentos para tu carpeta local "Adjuntos".
             </p>
 
             {backupStatus && (
-              <div className={`mb-4 p-3 rounded-md text-xs font-medium flex items-center gap-2 ${
-                backupStatus.startsWith('✓') ? 'bg-ok/10 text-ok border border-ok/20' : 'bg-error/10 text-error border border-error/20'
-              }`}>
-                {backupStatus.startsWith('✓') ? <CheckCircle className="w-4 h-4 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 flex-shrink-0" />}
+              <div
+                className={`mb-4 p-3 rounded-xl text-xs font-medium flex items-center gap-2 ${
+                  backupStatus.startsWith('✓')
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                    : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                }`}
+              >
+                {backupStatus.startsWith('✓') ? (
+                  <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                )}
                 <span>{backupStatus}</span>
               </div>
             )}
 
-            <input type="file" ref={fileInputRef} onChange={handleImportarFile} accept=".json,application/json" className="hidden" />
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImportarFile}
+              accept=".json,application/json"
+              className="hidden"
+            />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <button type="button" onClick={() => handleExportarBackup(false)}
-                className="p-3 bg-base-950 hover:bg-base-700 border border-base-600 hover:border-accent/50 rounded-md flex items-center gap-3 transition-colors text-left group">
-                <div className="w-8 h-8 rounded-md bg-accent-subtle flex items-center justify-center text-accent-light flex-shrink-0">
-                  <Download className="w-4 h-4" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Exportar JSON Ligero */}
+              <button
+                type="button"
+                onClick={() => handleExportarBackup(false)}
+                className="h-full min-h-[72px] p-3.5 bg-slate-800 hover:bg-slate-750 border border-slate-700 hover:border-sky-500 rounded-xl flex items-center gap-3 transition text-left group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 group-hover:scale-105 transition flex-shrink-0">
+                  <Download className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="text-xs font-semibold text-base-200">Exportar JSON Ligero</div>
-                  <div className="text-[11px] text-base-500 mt-0.5">Sin archivos adjuntos (Recomendado)</div>
+                  <div className="text-xs font-bold text-slate-200 group-hover:text-sky-300">
+                    Exportar JSON Ligero
+                  </div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">BD completa sin archivos pesados (Recomendado)</div>
                 </div>
               </button>
 
-              <button type="button" onClick={() => handleExportarBackup(true)}
-                className="p-3 bg-base-950 hover:bg-base-700 border border-base-600 hover:border-accent/50 rounded-md flex items-center gap-3 transition-colors text-left group">
-                <div className="w-8 h-8 rounded-md bg-accent-subtle flex items-center justify-center text-accent-light flex-shrink-0">
-                  <Download className="w-4 h-4" />
+              {/* Exportar JSON Completo */}
+              <button
+                type="button"
+                onClick={() => handleExportarBackup(true)}
+                className="h-full min-h-[72px] p-3.5 bg-slate-800 hover:bg-slate-750 border border-slate-700 hover:border-sky-500 rounded-xl flex items-center gap-3 transition text-left group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 group-hover:scale-105 transition flex-shrink-0">
+                  <Download className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="text-xs font-semibold text-base-200">Exportar JSON Completo</div>
-                  <div className="text-[11px] text-base-500 mt-0.5">Incluye adjuntos en base64</div>
+                  <div className="text-xs font-bold text-slate-200 group-hover:text-sky-300">
+                    Exportar JSON Completo
+                  </div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">Incluye adjuntos embebidos en base64</div>
                 </div>
               </button>
 
-              <button type="button" onClick={handleDescargarAdjuntos}
-                className="p-3 bg-base-950 hover:bg-base-700 border border-base-600 hover:border-ok/50 rounded-md flex items-center gap-3 transition-colors text-left group">
-                <div className="w-8 h-8 rounded-md bg-ok/10 flex items-center justify-center text-ok flex-shrink-0">
-                  <Paperclip className="w-4 h-4" />
+              {/* Descargar archivos para carpeta Adjuntos */}
+              <button
+                type="button"
+                onClick={handleDescargarAdjuntos}
+                className="h-full min-h-[72px] p-3.5 bg-slate-800 hover:bg-slate-750 border border-slate-700 hover:border-emerald-500 rounded-xl flex items-center gap-3 transition text-left group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition flex-shrink-0">
+                  <Paperclip className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="text-xs font-semibold text-base-200">Exportar Adjuntos</div>
-                  <div className="text-[11px] text-base-500 mt-0.5">Descarga los archivos de actividades</div>
+                  <div className="text-xs font-bold text-slate-200 group-hover:text-emerald-300">
+                    Exportar Carpeta "Adjuntos"
+                  </div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">Descarga los documentos de actividades</div>
                 </div>
               </button>
 
-              <button type="button" onClick={() => fileInputRef.current?.click()}
-                className="p-3 bg-base-950 hover:bg-base-700 border border-base-600 hover:border-warn/50 rounded-md flex items-center gap-3 transition-colors text-left group">
-                <div className="w-8 h-8 rounded-md bg-warn/10 flex items-center justify-center text-warn flex-shrink-0">
-                  <Upload className="w-4 h-4" />
+              {/* Botón Importar */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="h-full min-h-[72px] p-3.5 bg-slate-800 hover:bg-slate-750 border border-slate-700 hover:border-amber-500 rounded-xl flex items-center gap-3 transition text-left group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition flex-shrink-0">
+                  <Upload className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="text-xs font-semibold text-base-200">Importar / Restaurar</div>
-                  <div className="text-[11px] text-base-500 mt-0.5">Cargar archivo .json de respaldo</div>
+                  <div className="text-xs font-bold text-slate-200 group-hover:text-amber-300">
+                    Importar / Restaurar (.json)
+                  </div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">Cargar respaldo de datos existente</div>
                 </div>
               </button>
             </div>
           </section>
         </div>
 
-        <div className="flex justify-end gap-2 mt-5 pt-4 border-t border-base-600">
-          <button onClick={onClose} className="btn-secondary text-xs">Cancelar</button>
-          <button onClick={handleGuardar} className="btn-primary text-xs">
-            <Save className="w-3.5 h-3.5" /> Guardar Parámetros
+        <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-slate-700">
+          <button onClick={handleCancelar} className="px-4 py-2 border border-slate-700 rounded-xl text-sm text-slate-400 hover:bg-slate-700 transition">Cancelar</button>
+          <button onClick={handleGuardar} className="px-5 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-sm font-medium flex items-center gap-2 shadow transition">
+            <Save className="w-4 h-4" /> Guardar Parámetros
           </button>
         </div>
       </div>

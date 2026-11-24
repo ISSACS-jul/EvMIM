@@ -1,98 +1,222 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  color-scheme: dark;
+/* ══════════════════════════════════════════════════════════════════════
+   SISTEMA DE TEMAS VISUALES ERGONÓMICOS (BAJO CANSANCIO VISUAL)
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* 1. TEMA DEFAULT (Oscuro Clásico / Slate & Sky Original) */
+:root,
+[data-theme="default"] {
+  --color-slate-50: 248 250 252;
+  --color-slate-100: 241 245 249;
+  --color-slate-200: 226 232 240;
+  --color-slate-300: 203 213 225;
+  --color-slate-400: 148 163 184;
+  --color-slate-500: 100 116 139;
+  --color-slate-600: 71 85 105;
+  --color-slate-700: 51 65 85;
+  --color-slate-800: 30 41 59;
+  --color-slate-900: 15 23 42;
+  --color-slate-950: 2 6 23;
+
+  --color-sky-50: 240 249 255;
+  --color-sky-100: 224 242 254;
+  --color-sky-200: 186 230 253;
+  --color-sky-300: 125 211 252;
+  --color-sky-400: 56 189 248;
+  --color-sky-500: 14 165 233;
+  --color-sky-600: 2 132 199;
+  --color-sky-700: 3 105 161;
+  --color-sky-800: 7 89 133;
+  --color-sky-900: 12 74 110;
+  --color-sky-950: 8 47 73;
+
+  --theme-bg: #0f172a;
+  --theme-text: #e2e8f0;
+  --theme-input-bg: #1e293b;
+  --theme-input-border: #475569;
+  --theme-scheme: dark;
 }
 
-/* ── Base ──────────────────────────────────────────────── */
+/* 2. TEMA ELEGANTE OSCURO (Grafito Mate & Bronce Champán Suave - Cero amarillo chillón) */
+[data-theme="dark-gold"] {
+  /* Fondo carbón grafito suave que no cansa ni produce deslumbramiento */
+  --color-slate-50: 248 249 251;
+  --color-slate-100: 240 242 247;
+  --color-slate-200: 226 229 237;
+  --color-slate-300: 198 204 216;
+  --color-slate-400: 152 160 176;
+  --color-slate-500: 108 116 132;
+  --color-slate-600: 58 64 78;
+  --color-slate-700: 36 41 52;
+  --color-slate-800: 24 28 36;
+  --color-slate-900: 16 19 25;
+  --color-slate-950: 10 12 16;
+
+  /* Champán tostado y bronce refinado mate (elegante, sereno y suave a la vista) */
+  --color-sky-50: 252 249 242;
+  --color-sky-100: 247 240 228;
+  --color-sky-200: 238 224 201;
+  --color-sky-300: 224 202 164;
+  --color-sky-400: 206 176 128;
+  --color-sky-500: 188 152 98;
+  --color-sky-600: 164 128 76;
+  --color-sky-700: 136 104 58;
+  --color-sky-800: 108 81 44;
+  --color-sky-900: 68 51 28;
+  --color-sky-950: 42 31 17;
+
+  --theme-bg: #101319;
+  --theme-text: #e6e9f0;
+  --theme-input-bg: #1c212b;
+  --theme-input-border: #384050;
+  --theme-scheme: dark;
+}
+
+/* 3. TEMA NEGRO & AZUL (Alto Contraste / Fondo Negro Puro & Acentos Azul Eléctrico) */
+[data-theme="dark-blue"] {
+  --color-slate-50: 255 255 255;
+  --color-slate-100: 255 255 255;
+  --color-slate-200: 242 246 252;
+  --color-slate-300: 220 230 245;
+  --color-slate-400: 175 190 215;
+  --color-slate-500: 130 145 168;
+  --color-slate-600: 48 54 68;
+  --color-slate-700: 26 26 30;
+  --color-slate-800: 15 15 17;
+  --color-slate-900: 0 0 0;
+  --color-slate-950: 0 0 0;
+
+  --color-sky-50: 240 249 255;
+  --color-sky-100: 224 242 254;
+  --color-sky-200: 186 230 253;
+  --color-sky-300: 125 211 252;
+  --color-sky-400: 56 189 248;
+  --color-sky-500: 30 155 255;
+  --color-sky-600: 14 130 230;
+  --color-sky-700: 10 100 180;
+  --color-sky-800: 8 75 140;
+  --color-sky-900: 12 40 80;
+  --color-sky-950: 6 20 45;
+
+  --theme-bg: #000000;
+  --theme-text: #ffffff;
+  --theme-input-bg: #141416;
+  --theme-input-border: #303644;
+  --theme-scheme: dark;
+}
+
+/* 4. TEMA CLARO (Gris Perla Suave & Azul Sereno - Confortable para oficina/día) */
+[data-theme="light"] {
+  --color-slate-50: 24 33 47;
+  --color-slate-100: 24 33 47;
+  --color-slate-200: 39 49 66;
+  --color-slate-300: 65 77 97;
+  --color-slate-400: 100 112 131;
+  --color-slate-500: 130 142 160;
+  --color-slate-600: 209 216 226;
+  --color-slate-700: 232 236 242;
+  --color-slate-800: 255 255 255;
+  --color-slate-900: 244 246 249;
+  --color-slate-950: 250 251 253;
+
+  --color-sky-50: 240 248 255;
+  --color-sky-100: 224 240 254;
+  --color-sky-200: 186 224 252;
+  --color-sky-300: 125 200 248;
+  --color-sky-400: 48 168 232;
+  --color-sky-500: 18 138 209;
+  --color-sky-600: 14 116 178;
+  --color-sky-700: 11 93 144;
+  --color-sky-800: 9 74 115;
+  --color-sky-900: 219 238 254;
+  --color-sky-950: 239 247 255;
+
+  --theme-bg: #f4f6f9;
+  --theme-text: #18212f;
+  --theme-input-bg: #ffffff;
+  --theme-input-border: #cbd5e1;
+  --theme-scheme: light;
+}
+
+/* 4. TEMA ELEGANTE CLARO (Marfil Cálido, Lino & Champán - Filtro natural de luz azul) */
+[data-theme="light-gold"] {
+  --color-slate-50: 38 34 30;
+  --color-slate-100: 38 34 30;
+  --color-slate-200: 56 50 44;
+  --color-slate-300: 82 74 65;
+  --color-slate-400: 122 112 100;
+  --color-slate-500: 154 144 132;
+  --color-slate-600: 218 210 196;
+  --color-slate-700: 238 233 222;
+  --color-slate-800: 255 255 255;
+  --color-slate-900: 246 243 235;
+  --color-slate-950: 252 250 246;
+
+  /* Bronce y oro noble satinado */
+  --color-sky-50: 253 250 244;
+  --color-sky-100: 250 243 230;
+  --color-sky-200: 242 227 202;
+  --color-sky-300: 228 203 162;
+  --color-sky-400: 202 168 116;
+  --color-sky-500: 176 138 84;
+  --color-sky-600: 148 112 60;
+  --color-sky-700: 122 91 46;
+  --color-sky-800: 98 72 36;
+  --color-sky-900: 253 245 230;
+  --color-sky-950: 255 251 243;
+
+  --theme-bg: #f6f3eb;
+  --theme-text: #26221e;
+  --theme-input-bg: #ffffff;
+  --theme-input-border: #dcd3c3;
+  --theme-scheme: light;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   ESTILOS BASE Y CONTROL ERGONÓMICO
+   ══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  color-scheme: var(--theme-scheme, dark);
+}
+
 body {
   margin: 0;
-  font-family: 'Inter', system-ui, sans-serif;
-  background-color: #000000;
-  color: #c9d1d9;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: var(--theme-bg, #0f172a);
+  color: var(--theme-text, #e2e8f0);
   -webkit-font-smoothing: antialiased;
-  font-size: 14px;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
-/* ── Inputs / Selects ──────────────────────────────────── */
+/* Forzar tema nativo en selects, inputs y options */
 select, input, textarea {
-  color-scheme: dark;
+  color-scheme: var(--theme-scheme, dark);
 }
 
 select {
-  background-color: #161b22;
-  color: #c9d1d9;
-  border-color: #30363d;
+  background-color: var(--theme-input-bg, #1e293b);
+  color: var(--theme-text, #f1f5f9);
+  border-color: var(--theme-input-border, #475569);
 }
 
 select option {
-  background-color: #161b22;
-  color: #c9d1d9;
+  background-color: var(--theme-input-bg, #1e293b);
+  color: var(--theme-text, #f1f5f9);
 }
 
-/* ── Scrollbar GitHub-style ────────────────────────────── */
+/* Scrollbar adaptativa suave */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #161b22; }
-::-webkit-scrollbar-thumb { background: #30363d; border-radius: 999px; }
-::-webkit-scrollbar-thumb:hover { background: #484f58; }
+::-webkit-scrollbar-track { background: var(--theme-bg, #1e293b); }
+::-webkit-scrollbar-thumb { background: var(--theme-input-border, #334155); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { filter: brightness(1.2); }
 
-/* ── Planilla sticky ───────────────────────────────────── */
+/* Planilla sticky columns */
 .planilla-container { overflow: auto; }
 .planilla-container th, .planilla-container td { white-space: nowrap; }
-.sticky-col  { position: sticky; left: 0;     z-index: 10; }
+.sticky-col { position: sticky; left: 0; z-index: 10; }
 .sticky-col-2 { position: sticky; left: 32px; z-index: 10; }
-.sticky-col-3 { position: sticky; left: 160px;z-index: 10; }
-
-/* ── Componentes reutilizables ─────────────────────────── */
-@layer components {
-  /* Botón primario */
-  .btn-primary {
-    @apply inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md
-           bg-accent text-white text-sm font-medium
-           hover:bg-accent-light transition-colors;
-  }
-
-  /* Botón secundario */
-  .btn-secondary {
-    @apply inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md
-           bg-transparent border border-base-600 text-base-300 text-sm font-medium
-           hover:border-base-500 hover:text-base-200 transition-colors;
-  }
-
-  /* Badge / Tag estilo reference */
-  .badge {
-    @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold
-           bg-accent-subtle text-accent-light border border-accent/20;
-  }
-
-  .badge-cyan {
-    @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold
-           bg-cyan-tagBg text-cyan-tag border border-cyan-tag/20;
-  }
-
-  /* Card contenedor */
-  .card {
-    @apply bg-base-800 border border-base-600 rounded-lg shadow-card;
-  }
-
-  /* Input estilo IDE */
-  .input-ide {
-    @apply w-full px-3 py-1.5 bg-base-950 border border-base-600 rounded-md
-           text-sm text-base-200 placeholder-base-500
-           focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/40
-           transition-colors;
-  }
-
-  /* Tab activo */
-  .tab-active {
-    @apply text-base-200 border-b-2 border-accent;
-  }
-
-  .tab-idle {
-    @apply text-base-400 border-b-2 border-transparent hover:text-base-300 transition-colors;
-  }
-}
+.sticky-col-3 { position: sticky; left: 160px; z-index: 10; }

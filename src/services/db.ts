@@ -38,6 +38,8 @@ const DEFAULT_CONFIG: ConfiguracionSistema = {
   rangoBajoMax: 2.9,
   rangoBasicoMax: 3.9,
   rangoAltoMax: 4.5,
+  temaVisual: 'default',
+  escalaUI: 1,
 };
 
 const DEFAULT_CATEGORIAS: CategoriaEvaluacion[] = [

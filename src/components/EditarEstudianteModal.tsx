@@ -106,23 +106,23 @@ export const EditarEstudianteModal: React.FC<EditarEstudianteModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-base-800 border border-base-600 rounded-2xl shadow-2xl max-w-xl w-full p-6 my-6">
+      <div className="bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl max-w-xl w-full p-6 my-6">
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 mb-4 border-b border-base-600">
+        <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-700">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-accent/30 border border-accent/40 flex items-center justify-center text-accent-light">
+            <div className="w-10 h-10 rounded-xl bg-sky-600/30 border border-sky-500/40 flex items-center justify-center text-sky-400">
               <UserCheck className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-base-100">Modificar Datos del Estudiante</h2>
-              <p className="text-xs text-base-400">
+              <h2 className="text-lg font-bold text-slate-100">Modificar Datos del Estudiante</h2>
+              <p className="text-xs text-slate-400">
                 Edita nombres, código y vinculación a cursos y materias
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-base-400 hover:text-base-200 transition p-1 rounded-lg hover:bg-base-700/50"
+            className="text-slate-400 hover:text-slate-200 transition p-1 rounded-lg hover:bg-slate-700/50"
           >
             <X className="w-5 h-5" />
           </button>
@@ -138,31 +138,31 @@ export const EditarEstudianteModal: React.FC<EditarEstudianteModalProps> = ({
         <form onSubmit={handleGuardar} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-semibold text-base-300 block mb-1">Nombre *</label>
+              <label className="text-xs font-semibold text-slate-300 block mb-1">Nombre *</label>
               <input
                 type="text"
                 value={nombre}
                 onChange={e => setNombre(e.target.value)}
                 placeholder="Nombre del estudiante"
-                className="w-full px-3 py-2 bg-base-900 border border-base-600 rounded-xl text-sm text-base-100 focus:ring-2 focus:ring-accent focus:border-accent outline-none"
+                className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-xl text-sm text-slate-100 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none"
                 required
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-base-300 block mb-1">Apellido *</label>
+              <label className="text-xs font-semibold text-slate-300 block mb-1">Apellido *</label>
               <input
                 type="text"
                 value={apellido}
                 onChange={e => setApellido(e.target.value)}
                 placeholder="Apellido del estudiante"
-                className="w-full px-3 py-2 bg-base-900 border border-base-600 rounded-xl text-sm text-base-100 focus:ring-2 focus:ring-accent focus:border-accent outline-none"
+                className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-xl text-sm text-slate-100 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none"
                 required
               />
             </div>
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-base-300 block mb-1">
+            <label className="text-xs font-semibold text-slate-300 block mb-1">
               Código / Matrícula
             </label>
             <input
@@ -170,19 +170,19 @@ export const EditarEstudianteModal: React.FC<EditarEstudianteModalProps> = ({
               value={codigo}
               onChange={e => setCodigo(e.target.value)}
               placeholder="Ej: EST-101"
-              className="w-full px-3 py-2 bg-base-900 border border-base-600 rounded-xl text-sm text-base-100 focus:ring-2 focus:ring-accent focus:border-accent outline-none"
+              className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-xl text-sm text-slate-100 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none"
             />
           </div>
 
           {/* Cursos a los que pertenece */}
-          <div className="bg-base-900/60 p-3.5 rounded-xl border border-base-600/80">
-            <label className="text-xs font-semibold text-base-300 block mb-2 flex items-center gap-1.5">
-              <BookOpen className="w-3.5 h-3.5 text-accent-light" />
+          <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-700/80">
+            <label className="text-xs font-semibold text-slate-300 block mb-2 flex items-center gap-1.5">
+              <BookOpen className="w-3.5 h-3.5 text-sky-400" />
               Cursos asignados (uno o varios):
             </label>
 
             {cursos.length === 0 ? (
-              <p className="text-xs text-base-500">No hay cursos creados.</p>
+              <p className="text-xs text-slate-500">No hay cursos creados.</p>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {cursos.map(c => {
@@ -195,8 +195,8 @@ export const EditarEstudianteModal: React.FC<EditarEstudianteModalProps> = ({
                       onClick={() => toggleCurso(c.id)}
                       className={`text-xs px-3 py-1.5 rounded-xl border font-medium flex items-center gap-1.5 transition ${
                         seleccionado
-                          ? 'bg-accent border-accent text-white shadow'
-                          : 'bg-base-800 border-base-600 text-base-400 hover:border-slate-500 hover:text-base-200'
+                          ? 'bg-sky-600 border-sky-500 text-white shadow'
+                          : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
                       }`}
                     >
                       {seleccionado && <Check className="w-3.5 h-3.5" />}
@@ -213,8 +213,8 @@ export const EditarEstudianteModal: React.FC<EditarEstudianteModalProps> = ({
 
           {/* Asignaturas específicas */}
           {cursosSeleccionados.length > 0 && (
-            <div className="bg-base-900/60 p-3.5 rounded-xl border border-base-600/80 max-h-48 overflow-y-auto">
-              <label className="text-xs font-semibold text-base-300 block mb-2">
+            <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-700/80 max-h-48 overflow-y-auto">
+              <label className="text-xs font-semibold text-slate-300 block mb-2">
                 Asignaturas / Materias inscritas:
               </label>
               <div className="space-y-2">
@@ -225,7 +225,7 @@ export const EditarEstudianteModal: React.FC<EditarEstudianteModalProps> = ({
 
                   return (
                     <div key={cId} className="pt-1">
-                      <div className="text-[11px] font-bold text-accent-light uppercase tracking-wider mb-1">
+                      <div className="text-[11px] font-bold text-sky-400 uppercase tracking-wider mb-1">
                         {c?.nombre}:
                       </div>
                       <div className="flex flex-wrap gap-1.5">
@@ -241,7 +241,7 @@ export const EditarEstudianteModal: React.FC<EditarEstudianteModalProps> = ({
                               className={`text-[11px] px-2.5 py-1 rounded-lg border font-medium flex items-center gap-1 transition ${
                                 activa
                                   ? 'bg-emerald-600/30 border-emerald-500/50 text-emerald-200'
-                                  : 'bg-base-800 border-base-600 text-base-500 hover:border-base-600'
+                                  : 'bg-slate-800 border-slate-700 text-slate-500 hover:border-slate-600'
                               }`}
                             >
                               {activa && <Check className="w-2.5 h-2.5 text-emerald-400" />}
@@ -257,17 +257,17 @@ export const EditarEstudianteModal: React.FC<EditarEstudianteModalProps> = ({
             </div>
           )}
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-base-600/80">
+          <div className="flex justify-end gap-2 pt-3 border-t border-slate-700/80">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-medium text-base-400 hover:text-white hover:bg-base-700 rounded-xl transition"
+              className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-700 rounded-xl transition"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-5 py-2 text-xs font-semibold bg-accent hover:bg-accent-light text-white rounded-xl shadow flex items-center gap-1.5 transition"
+              className="px-5 py-2 text-xs font-semibold bg-sky-600 hover:bg-sky-500 text-white rounded-xl shadow flex items-center gap-1.5 transition"
             >
               <Save className="w-3.5 h-3.5" /> Guardar Cambios
             </button>

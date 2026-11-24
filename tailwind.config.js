@@ -1,4 +1,14 @@
 /** @type {import('tailwindcss').Config} */
+
+function withOpacity(variableName) {
+  return ({ opacityValue }) => {
+    if (opacityValue !== undefined) {
+      return `rgb(var(${variableName}) / ${opacityValue})`;
+    }
+    return `rgb(var(${variableName}))`;
+  };
+}
+
 export default {
   content: [
     "./index.html",
@@ -7,53 +17,41 @@ export default {
   theme: {
     extend: {
       colors: {
-        // ── Fondo IDE ────────────────────────────────────
-        base: {
-          950: '#000000',   // fondo raíz — negro puro
-          900: '#0d0d0d',   // paneles primarios
-          800: '#141414',   // paneles secundarios / cards
-          700: '#1a1a1a',   // hover de items
-          600: '#2a2a2a',   // bordes
-          500: '#4a4a4a',   // texto deshabilitado / placeholders
-          400: '#888888',   // texto secundario
-          300: '#bbbbbb',   // texto normal
-          200: '#e0e0e0',   // texto prominente
-          100: '#f5f5f5',   // texto máximo contraste
+        slate: {
+          50: withOpacity('--color-slate-50'),
+          100: withOpacity('--color-slate-100'),
+          200: withOpacity('--color-slate-200'),
+          300: withOpacity('--color-slate-300'),
+          400: withOpacity('--color-slate-400'),
+          500: withOpacity('--color-slate-500'),
+          600: withOpacity('--color-slate-600'),
+          700: withOpacity('--color-slate-700'),
+          800: withOpacity('--color-slate-800'),
+          900: withOpacity('--color-slate-900'),
+          950: withOpacity('--color-slate-950'),
         },
-        // ── Acento azul (similar al del reference) ───────
-        accent: {
-          DEFAULT: '#388bfd',
-          light:   '#58a6ff',
-          dark:    '#1f6feb',
-          subtle:  'rgba(31,111,235,0.15)',
+        sky: {
+          50: withOpacity('--color-sky-50'),
+          100: withOpacity('--color-sky-100'),
+          200: withOpacity('--color-sky-200'),
+          300: withOpacity('--color-sky-300'),
+          400: withOpacity('--color-sky-400'),
+          500: withOpacity('--color-sky-500'),
+          600: withOpacity('--color-sky-600'),
+          700: withOpacity('--color-sky-700'),
+          800: withOpacity('--color-sky-800'),
+          900: withOpacity('--color-sky-900'),
+          950: withOpacity('--color-sky-950'),
         },
-        // ── Cyan (badges / tags) ─────────────────────────
-        cyan: {
-          DEFAULT: '#39d353',
-          tag:     '#0ea5e9',
-          tagBg:   'rgba(14,165,233,0.12)',
-        },
-        // ── Semáforos ────────────────────────────────────
-        ok:    '#3fb950',
-        warn:  '#d29922',
-        error: '#f85149',
-      },
-      fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'Consolas', 'monospace'],
-      },
-      borderRadius: {
-        DEFAULT: '6px',
-        md:  '6px',
-        lg:  '8px',
-        xl:  '10px',
-        '2xl': '12px',
-      },
-      boxShadow: {
-        card: '0 1px 3px rgba(0,0,0,0.3)',
-        modal: '0 8px 32px rgba(0,0,0,0.5)',
-      },
+        brand: {
+          50: '#f0f9ff',
+          100: '#e0f2fe',
+          500: '#0ea5e9',
+          600: '#0284c7',
+          700: '#0369a1',
+        }
+      }
     },
   },
   plugins: [],
-};
+}

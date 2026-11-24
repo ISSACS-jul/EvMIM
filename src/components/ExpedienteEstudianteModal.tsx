@@ -50,14 +50,14 @@ export const ExpedienteEstudianteModal: React.FC<ExpedienteEstudianteModalProps>
   });
 
   const getNotaColor = (nota: number): string => {
-    if (nota === 0) return 'text-base-500';
+    if (nota === 0) return 'text-slate-500';
     if (nota >= config.notaAprobatoria) return 'text-emerald-400';
     if (nota >= config.notaAprobatoria * 0.85) return 'text-amber-400';
     return 'text-rose-400';
   };
 
   const getNotaBg = (nota: number): string => {
-    if (nota === 0) return 'bg-base-800 text-base-500 border-base-600';
+    if (nota === 0) return 'bg-slate-800 text-slate-500 border-slate-700';
     if (nota >= config.notaAprobatoria) return 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30';
     if (nota >= config.notaAprobatoria * 0.85) return 'bg-amber-500/15 text-amber-300 border-amber-500/30';
     return 'bg-rose-500/15 text-rose-300 border-rose-500/30';
@@ -127,18 +127,18 @@ export const ExpedienteEstudianteModal: React.FC<ExpedienteEstudianteModalProps>
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-3 md:p-6 overflow-y-auto">
-      <div className="bg-base-900 border border-base-600/80 rounded-2xl shadow-2xl max-w-5xl w-full max-h-[92vh] flex flex-col my-auto overflow-hidden">
+      <div className="bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl max-w-5xl w-full max-h-[92vh] flex flex-col my-auto overflow-hidden">
         {/* Barra Superior */}
-        <div className="bg-base-800/90 px-6 py-4 border-b border-base-600 flex items-center justify-between flex-shrink-0">
+        <div className="bg-slate-800/90 px-6 py-4 border-b border-slate-700 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-accent/20 border border-accent/40 flex items-center justify-center text-accent-light">
+            <div className="w-10 h-10 rounded-xl bg-sky-600/20 border border-sky-500/40 flex items-center justify-center text-sky-400">
               <GraduationCap className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-base-100 flex items-center gap-2">
+              <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
                 Expediente y Ficha General del Estudiante
               </h2>
-              <p className="text-xs text-base-400">
+              <p className="text-xs text-slate-400">
                 Historial académico multianual a lo largo de todos sus años lectivos y cursos
               </p>
             </div>
@@ -146,14 +146,14 @@ export const ExpedienteEstudianteModal: React.FC<ExpedienteEstudianteModalProps>
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
-              className="px-3 py-1.5 bg-base-700 hover:bg-base-600 border border-base-600 text-base-300 hover:text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition"
+              className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-300 hover:text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition"
               title="Imprimir expediente"
             >
               <Printer className="w-3.5 h-3.5" /> Imprimir
             </button>
             <button
               onClick={onClose}
-              className="text-base-400 hover:text-base-200 transition p-1.5 rounded-lg hover:bg-base-700/60"
+              className="text-slate-400 hover:text-slate-200 transition p-1.5 rounded-lg hover:bg-slate-700/60"
             >
               <X className="w-5 h-5" />
             </button>
@@ -161,9 +161,9 @@ export const ExpedienteEstudianteModal: React.FC<ExpedienteEstudianteModalProps>
         </div>
 
         {/* Selector de estudiante */}
-        <div className="bg-slate-850 px-6 py-3 border-b border-base-800 flex items-center gap-3 flex-shrink-0 flex-wrap">
-          <span className="text-xs font-semibold text-base-400 flex items-center gap-1.5">
-            <Search className="w-3.5 h-3.5 text-accent-light" /> Consultar Estudiante:
+        <div className="bg-slate-850 px-6 py-3 border-b border-slate-800 flex items-center gap-3 flex-shrink-0 flex-wrap">
+          <span className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
+            <Search className="w-3.5 h-3.5 text-sky-400" /> Consultar Estudiante:
           </span>
           <div className="flex-1 max-w-sm relative">
             <input
@@ -171,16 +171,16 @@ export const ExpedienteEstudianteModal: React.FC<ExpedienteEstudianteModalProps>
               value={busqueda}
               onChange={e => setBusqueda(e.target.value)}
               placeholder="Filtrar por nombre o código..."
-              className="w-full pl-3 pr-3 py-1.5 bg-base-800 border border-base-600 rounded-lg text-xs text-base-100 placeholder-base-500 outline-none focus:border-accent"
+              className="w-full pl-3 pr-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-100 placeholder-slate-500 outline-none focus:border-sky-500"
             />
           </div>
           <select
             value={estudianteSeleccionadoId}
             onChange={e => setEstudianteSeleccionadoId(e.target.value)}
-            className="px-3 py-1.5 bg-base-800 border border-base-600 rounded-lg text-xs text-base-100 outline-none focus:border-accent max-w-xs cursor-pointer font-medium"
+            className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-100 outline-none focus:border-sky-500 max-w-xs cursor-pointer font-medium"
           >
             {estudiantesFiltrados.map(e => (
-              <option key={e.id} value={e.id} className="bg-base-800 text-base-100">
+              <option key={e.id} value={e.id} className="bg-slate-800 text-slate-100">
                 {e.apellido}, {e.nombre} ({e.codigo})
               </option>
             ))}
@@ -190,14 +190,14 @@ export const ExpedienteEstudianteModal: React.FC<ExpedienteEstudianteModalProps>
         {/* Cuerpo Principal Scrollable */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {!expediente ? (
-            <div className="text-center py-20 text-base-500">
+            <div className="text-center py-20 text-slate-500">
               <GraduationCap className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p className="font-semibold text-base-400">Selecciona un estudiante para consultar su expediente.</p>
+              <p className="font-semibold text-slate-400">Selecciona un estudiante para consultar su expediente.</p>
             </div>
           ) : (
             <>
               {/* Tarjeta Perfil del Estudiante */}
-              <div className="bg-base-800/80 border border-base-600/80 rounded-2xl p-5 shadow-sm">
+              <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-sm">
                 <div className="flex items-start justify-between flex-wrap gap-4">
                   <div className="flex items-center gap-4">
                     <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-500 to-sky-700 flex items-center justify-center text-white text-2xl font-bold shadow-md">
@@ -205,11 +205,11 @@ export const ExpedienteEstudianteModal: React.FC<ExpedienteEstudianteModalProps>
                       {expediente.estudiante.apellido[0]}
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-base-100">
+                      <h3 className="text-xl font-bold text-slate-100">
                         {expediente.estudiante.apellido}, {expediente.estudiante.nombre}
                       </h3>
-                      <div className="flex items-center gap-3 text-xs text-base-400 mt-1">
-                        <span className="font-mono bg-base-900/60 px-2 py-0.5 rounded border border-base-600">
+                      <div className="flex items-center gap-3 text-xs text-slate-400 mt-1">
+                        <span className="font-mono bg-slate-900/60 px-2 py-0.5 rounded border border-slate-700">
                           {expediente.estudiante.codigo}
                         </span>
                         <span>·</span>
@@ -221,9 +221,9 @@ export const ExpedienteEstudianteModal: React.FC<ExpedienteEstudianteModalProps>
                   </div>
 
                   {/* Badge de Promedio Histórico Global */}
-                  <div className="bg-base-900/80 border border-base-600/80 rounded-xl p-3 px-5 text-right flex items-center gap-4">
+                  <div className="bg-slate-900/80 border border-slate-700/80 rounded-xl p-3 px-5 text-right flex items-center gap-4">
                     <div>
-                      <div className="text-[11px] font-semibold text-base-400 uppercase tracking-wider">
+                      <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
                         Promedio Histórico Global
                       </div>
                       <div
@@ -237,11 +237,11 @@ export const ExpedienteEstudianteModal: React.FC<ExpedienteEstudianteModalProps>
                           ? expediente.promedioHistoricoGlobal.toFixed(2)
                           : '—'}
                       </div>
-                      <div className="text-[10px] text-base-500 mt-0.5">
+                      <div className="text-[10px] text-slate-500 mt-0.5">
                         Escala {config.minNota} a {config.maxNota} (Min. {config.notaAprobatoria})
                       </div>
                     </div>
-                    <div className="w-12 h-12 rounded-xl bg-accent-light/10 border border-accent/30 flex items-center justify-center text-accent-light">
+                    <div className="w-12 h-12 rounded-xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400">
                       <Award className="w-6 h-6" />
                     </div>
                   </div>
@@ -250,12 +250,12 @@ export const ExpedienteEstudianteModal: React.FC<ExpedienteEstudianteModalProps>
 
               {/* Gráfico de Evolución Multianual */}
               {expediente.aniosCursados.length > 1 && (
-                <div className="bg-base-800/80 border border-base-600/80 rounded-2xl p-5 shadow-sm">
+                <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-sm">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-sm font-bold text-base-200 flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-accent-light" /> Evolución del Rendimiento Multianual
+                    <h4 className="text-sm font-bold text-slate-200 flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-sky-400" /> Evolución del Rendimiento Multianual
                     </h4>
-                    <span className="text-xs text-base-400">Comparativa año a año</span>
+                    <span className="text-xs text-slate-400">Comparativa año a año</span>
                   </div>
                   <ReactECharts option={lineChartOption} style={{ height: '240px' }} />
                 </div>
@@ -263,12 +263,12 @@ export const ExpedienteEstudianteModal: React.FC<ExpedienteEstudianteModalProps>
 
               {/* Trayectoria Detallada Año tras Año */}
               <div className="space-y-4">
-                <h4 className="text-sm font-bold text-base-200 flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-accent-light" /> Trayectoria Académica Detallada (Año tras Año)
+                <h4 className="text-sm font-bold text-slate-200 flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-sky-400" /> Trayectoria Académica Detallada (Año tras Año)
                 </h4>
 
                 {expediente.aniosCursados.length === 0 ? (
-                  <div className="p-6 bg-base-800/60 rounded-xl border border-base-600 text-center text-base-500 text-sm">
+                  <div className="p-6 bg-slate-800/60 rounded-xl border border-slate-700 text-center text-slate-500 text-sm">
                     Este estudiante no cuenta con cursos o años asignados actualmente.
                   </div>
                 ) : (
@@ -299,21 +299,21 @@ export const ExpedienteEstudianteModal: React.FC<ExpedienteEstudianteModalProps>
                     return (
                       <div
                         key={idx}
-                        className="bg-base-800/80 border border-base-600/80 rounded-2xl p-5 shadow-sm space-y-4"
+                        className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-sm space-y-4"
                       >
                         {/* Cabecera del Año */}
-                        <div className="flex items-center justify-between flex-wrap gap-2 border-b border-base-600/80 pb-3">
+                        <div className="flex items-center justify-between flex-wrap gap-2 border-b border-slate-700/80 pb-3">
                           <div className="flex items-center gap-3">
-                            <div className="p-2 bg-accent/20 text-accent-light rounded-xl border border-accent/30">
+                            <div className="p-2 bg-sky-600/20 text-sky-400 rounded-xl border border-sky-500/30">
                               <Calendar className="w-5 h-5" />
                             </div>
                             <div>
-                              <div className="text-base font-bold text-base-100 flex items-center gap-2">
+                              <div className="text-base font-bold text-slate-100 flex items-center gap-2">
                                 <span>Año {item.anioNombre}</span>
-                                <span className="text-base-500 font-normal">·</span>
-                                <span className="text-accent-light font-semibold">{item.cursoNombre}</span>
+                                <span className="text-slate-500 font-normal">·</span>
+                                <span className="text-sky-400 font-semibold">{item.cursoNombre}</span>
                               </div>
-                              <div className="text-xs text-base-500">
+                              <div className="text-xs text-slate-500">
                                 {item.materias.length} asignaturas evaluadas en este año lectivo
                               </div>
                             </div>
@@ -321,7 +321,7 @@ export const ExpedienteEstudianteModal: React.FC<ExpedienteEstudianteModalProps>
 
                           <div className="flex items-center gap-3">
                             <div className="text-right">
-                              <div className="text-[10px] text-base-400 uppercase font-semibold">
+                              <div className="text-[10px] text-slate-400 uppercase font-semibold">
                                 Promedio Anual
                               </div>
                               <div className={`text-xl font-black ${getNotaColor(item.promedioAnio)}`}>
@@ -340,13 +340,13 @@ export const ExpedienteEstudianteModal: React.FC<ExpedienteEstudianteModalProps>
 
                         {/* Tabla de Materias de este año */}
                         {item.materias.length === 0 ? (
-                          <p className="text-xs text-base-500 italic py-2">
+                          <p className="text-xs text-slate-500 italic py-2">
                             Sin asignaturas vinculadas a este curso.
                           </p>
                         ) : (
-                          <div className="overflow-x-auto rounded-xl border border-base-600/60">
+                          <div className="overflow-x-auto rounded-xl border border-slate-700/60">
                             <table className="w-full text-xs text-left">
-                              <thead className="bg-base-900/80 text-base-400 uppercase font-bold text-[10px] tracking-wider border-b border-base-600/60">
+                              <thead className="bg-slate-900/80 text-slate-400 uppercase font-bold text-[10px] tracking-wider border-b border-slate-700/60">
                                 <tr>
                                   <th className="py-2.5 px-4">Asignatura / Materia</th>
                                   {Array.from({ length: config.periodosCount }, (_, i) => i + 1).map(p => (
@@ -359,13 +359,13 @@ export const ExpedienteEstudianteModal: React.FC<ExpedienteEstudianteModalProps>
                                   <th className="py-2.5 px-3 text-center">Estado</th>
                                 </tr>
                               </thead>
-                              <tbody className="divide-y divide-slate-700/40 text-base-300">
+                              <tbody className="divide-y divide-slate-700/40 text-slate-300">
                                 {item.materias.map(m => {
                                   return (
-                                    <tr key={m.asignaturaId} className="hover:bg-base-700/30 transition">
-                                      <td className="py-2.5 px-4 font-semibold text-base-200">
+                                    <tr key={m.asignaturaId} className="hover:bg-slate-700/30 transition">
+                                      <td className="py-2.5 px-4 font-semibold text-slate-200">
                                         <div className="flex items-center gap-2">
-                                          <BookOpen className="w-3.5 h-3.5 text-accent-light flex-shrink-0" />
+                                          <BookOpen className="w-3.5 h-3.5 text-sky-400 flex-shrink-0" />
                                           <span>{m.asignaturaNombre}</span>
                                         </div>
                                       </td>
@@ -378,7 +378,7 @@ export const ExpedienteEstudianteModal: React.FC<ExpedienteEstudianteModalProps>
                                                 {notaP.toFixed(1)}
                                               </span>
                                             ) : (
-                                              <span className="text-base-600">—</span>
+                                              <span className="text-slate-600">—</span>
                                             )}
                                           </td>
                                         );
@@ -392,7 +392,7 @@ export const ExpedienteEstudianteModal: React.FC<ExpedienteEstudianteModalProps>
                                           {m.promedioFinal > 0 ? m.promedioFinal.toFixed(2) : '—'}
                                         </span>
                                       </td>
-                                      <td className="py-2.5 px-3 text-center text-base-400 font-mono">
+                                      <td className="py-2.5 px-3 text-center text-slate-400 font-mono">
                                         {m.calificacionesCount}
                                       </td>
                                       <td className="py-2.5 px-3 text-center">
@@ -429,11 +429,11 @@ export const ExpedienteEstudianteModal: React.FC<ExpedienteEstudianteModalProps>
         </div>
 
         {/* Footer */}
-        <div className="bg-base-800/90 px-6 py-3 border-t border-base-600 flex items-center justify-between text-xs text-base-400 flex-shrink-0">
+        <div className="bg-slate-800/90 px-6 py-3 border-t border-slate-700 flex items-center justify-between text-xs text-slate-400 flex-shrink-0">
           <span>Sistema Académico Evaluador v0.1</span>
           <button
             onClick={onClose}
-            className="px-4 py-1.5 bg-base-700 hover:bg-base-600 text-white rounded-xl text-xs font-semibold transition"
+            className="px-4 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-semibold transition"
           >
             Cerrar Expediente
           </button>

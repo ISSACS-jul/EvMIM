@@ -1,3 +1,5 @@
+export type TemaVisual = 'default' | 'dark-gold' | 'dark-blue' | 'light' | 'light-gold';
+
 export interface ConfiguracionSistema {
   id: number;
   minNota: number;
@@ -8,6 +10,8 @@ export interface ConfiguracionSistema {
   rangoBajoMax?: number; // Límite superior Desempeño Bajo (ej: 2.9)
   rangoBasicoMax?: number; // Límite superior Desempeño Básico (ej: 3.9)
   rangoAltoMax?: number; // Límite superior Desempeño Alto (ej: 4.5)
+  temaVisual?: TemaVisual;
+  escalaUI?: number;
 }
 
 export interface CategoriaEvaluacion {
