@@ -21,6 +21,22 @@ fn abrir_carpeta_datos(app: tauri::AppHandle) -> Result<String, String> {
     }
 
     let path_str = dir.to_string_lossy().to_string();
+
+    #[cfg(target_os = "linux")]
+    {
+        // En AppImage, variables como LD_LIBRARY_PATH o APPIMAGE pueden bloquear xdg-open
+        let status = std::process::Command::new("xdg-open")
+            .env_remove("LD_LIBRARY_PATH")
+            .env_remove("APPIMAGE")
+            .env_remove("APPDIR")
+            .arg(&path_str)
+            .spawn();
+
+        if status.is_ok() {
+            return Ok(path_str);
+        }
+    }
+
     app.opener()
         .open_path(&path_str, None::<&str>)
         .map_err(|e| format!("No se pudo abrir el explorador de archivos: {}", e))?;
@@ -28,11 +44,17 @@ fn abrir_carpeta_datos(app: tauri::AppHandle) -> Result<String, String> {
     Ok(path_str)
 }
 
+#[tauri::command]
+fn escribir_archivo_binario(path: String, bytes: Vec<u8>) -> Result<(), String> {
+    std::fs::write(&path, bytes).map_err(|e| format!("No se pudo guardar el archivo: {}", e))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![greet, abrir_carpeta_datos])
+        .plugin(tauri_plugin_dialog::init())
+        .invoke_handler(tauri::generate_handler![greet, abrir_carpeta_datos, escribir_archivo_binario])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

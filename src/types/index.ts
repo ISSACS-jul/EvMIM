@@ -1,4 +1,4 @@
-export type TemaVisual = 'default' | 'dark-gold' | 'dark-blue' | 'light' | 'light-gold';
+export type TemaVisual = 'default' | 'dark-gold' | 'dark-blue' | 'light' | 'light-gold' | 'orquidea';
 
 export interface ConfiguracionSistema {
   id: number;
@@ -95,6 +95,28 @@ export interface ResumenEstudiante {
   promedioAcumuladoAnio?: number; // Promedio del año asumiendo nota mínima en periodos vacíos
   notaNecesariaAnio?: number; // Nota definitiva necesaria para aprobar el año (visible en el último periodo)
   yaAproboAnio?: boolean; // Indica si con los periodos previos ya aseguró la aprobación del año
+  planMejoraActivo?: PlanMejoraPeriodo;
+  habilitacion?: HabilitacionAnual;
+}
+
+export interface PlanMejoraPeriodo {
+  presenta: boolean;
+  aprobo: boolean;
+  nota?: number;
+}
+
+export interface HabilitacionAnual {
+  presenta: boolean;
+  aprobo: boolean;
+  nota?: number;
+}
+
+export interface RecuperacionAcademica {
+  id: string; // `${estudianteId}__${targetId}`
+  estudianteId: string;
+  targetId: string; // asignaturaId o cursoId
+  planesMejora: { [periodo: number]: PlanMejoraPeriodo };
+  habilitacion?: HabilitacionAnual;
 }
 
 // Historial y Expediente General del Estudiante (Multianual)
@@ -105,6 +127,8 @@ export interface ResumenMateriaHistorial {
   promediosPeriodo: { [periodo: number]: number };
   calificacionesCount: number;
   estado: 'aprobado' | 'en_riesgo' | 'reprobado';
+  planesMejora?: { [periodo: number]: PlanMejoraPeriodo };
+  habilitacion?: HabilitacionAnual;
 }
 
 export interface HistorialAnioEstudiante {
@@ -169,6 +193,7 @@ export interface BackupData {
   actividades: Actividad[];
   calificaciones: Calificacion[];
   evaluacionesProfundas?: EvaluacionProfundaDetalle[];
+  recuperaciones?: RecuperacionAcademica[];
 }
 
 

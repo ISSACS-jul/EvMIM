@@ -371,26 +371,63 @@ export const ExpedienteEstudianteModal: React.FC<ExpedienteEstudianteModalProps>
                                       </td>
                                       {Array.from({ length: config.periodosCount }, (_, i) => i + 1).map(p => {
                                         const notaP = m.promediosPeriodo[p] || 0;
+                                        const pm = m.planesMejora?.[p];
                                         return (
                                           <td key={p} className="py-2.5 px-2 text-center font-mono">
-                                            {notaP > 0 ? (
-                                              <span className={`px-1.5 py-0.5 rounded text-[11px] font-bold ${getNotaBg(notaP)}`}>
-                                                {notaP.toFixed(1)}
-                                              </span>
-                                            ) : (
-                                              <span className="text-slate-600">—</span>
-                                            )}
+                                            <div className="inline-flex items-center gap-1 justify-center">
+                                              {notaP > 0 ? (
+                                                <span className={`px-1.5 py-0.5 rounded text-[11px] font-bold ${getNotaBg(notaP)}`}>
+                                                  {notaP.toFixed(1)}
+                                                </span>
+                                              ) : (
+                                                <span className="text-slate-600">—</span>
+                                              )}
+                                              {pm?.presenta && (
+                                                <span
+                                                  title={
+                                                    pm.aprobo
+                                                      ? 'Presentó y aprobó Plan de Mejora'
+                                                      : 'Presentó Plan de Mejora y no aprobó'
+                                                  }
+                                                  className={`text-[9px] font-bold px-1 py-0.5 rounded border ${
+                                                    pm.aprobo
+                                                      ? 'bg-sky-500/20 text-sky-300 border-sky-500/40'
+                                                      : 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                                                  }`}
+                                                >
+                                                  {pm.aprobo ? 'PM✓' : 'PM✗'}
+                                                </span>
+                                              )}
+                                            </div>
                                           </td>
                                         );
                                       })}
                                       <td className="py-2.5 px-3 text-center">
-                                        <span
-                                          className={`px-2 py-1 rounded-lg text-xs font-black border ${getNotaBg(
-                                            m.promedioFinal
-                                          )}`}
-                                        >
-                                          {m.promedioFinal > 0 ? m.promedioFinal.toFixed(2) : '—'}
-                                        </span>
+                                        <div className="inline-flex items-center gap-1 justify-center">
+                                          <span
+                                            className={`px-2 py-1 rounded-lg text-xs font-black border ${getNotaBg(
+                                              m.promedioFinal
+                                            )}`}
+                                          >
+                                            {m.promedioFinal > 0 ? m.promedioFinal.toFixed(2) : '—'}
+                                          </span>
+                                          {m.habilitacion?.presenta && (
+                                            <span
+                                              title={
+                                                m.habilitacion.aprobo
+                                                  ? 'Presentó y aprobó Habilitación'
+                                                  : 'Presentó Habilitación y no aprobó'
+                                              }
+                                              className={`text-[9px] font-bold px-1 py-0.5 rounded border ${
+                                                m.habilitacion.aprobo
+                                                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                                                  : 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                                              }`}
+                                            >
+                                              {m.habilitacion.aprobo ? 'HAB✓' : 'HAB✗'}
+                                            </span>
+                                          )}
+                                        </div>
                                       </td>
                                       <td className="py-2.5 px-3 text-center text-slate-400 font-mono">
                                         {m.calificacionesCount}

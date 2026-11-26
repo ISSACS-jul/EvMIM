@@ -4,6 +4,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { ConfiguracionSistema, CategoriaEvaluacion, TemaVisual, BackupData } from '../types';
 import { DatabaseService } from '../services/db';
 import { TEMAS_INFO, ESCALAS_UI, aplicarTemaVisual, aplicarEscalaUI } from '../services/theme';
+import { guardarArchivoConDialogo } from '../services/fileSaver';
 import {
   Save,
   Plus,
@@ -51,7 +52,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
   const aniosDisponibles = DatabaseService.getAnios();
 
   const [temaActivo, setTemaActivo] = useState<TemaVisual>(
-    config.temaVisual || (localStorage.getItem('evaluador_tema_visual') as TemaVisual) || 'default'
+    config.temaVisual || (localStorage.getItem('evaluador_tema_visual') as TemaVisual) || 'orquidea'
   );
   const [escalaActiva, setEscalaActiva] = useState<number>(
     config.escalaUI || Number(localStorage.getItem('evaluador_ui_scale')) || 1
@@ -118,17 +119,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
     setTimeout(() => { onSaved(); onClose(); }, 700);
   };
 
-  const descargarBlob = (blob: Blob, filename: string) => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
   const generarZipDesdeBackup = async (dataConAdjuntos: BackupData, filename: string) => {
     const zip = new JSZip();
     const adjuntosFolder = zip.folder('Adjuntos');
@@ -154,20 +144,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
     };
 
     zip.file('backup.json', JSON.stringify(jsonParaZip, null, 2));
-    const zipBlob = await zip.generateAsync({ type: 'blob' });
-    descargarBlob(zipBlob, filename);
-    return countAdjuntos;
+    const zipBytes = await zip.generateAsync({ type: 'uint8array' });
+    const guardado = await guardarArchivoConDialogo(zipBytes, filename, 'zip', 'Archivo ZIP');
+    return { countAdjuntos, guardado };
   };
 
   // Opción 1: Exportar Solo JSON
-  const handleExportarSoloJson = () => {
+  const handleExportarSoloJson = async () => {
     try {
       const data = DatabaseService.exportarBackup(false);
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const jsonStr = JSON.stringify(data, null, 2);
       const hoy = new Date().toISOString().split('T')[0];
-      descargarBlob(blob, `evaluador-respaldo-${hoy}.json`);
-      setBackupStatus('✓ Respaldo solo JSON descargado correctamente.');
-      setTimeout(() => setBackupStatus(null), 3500);
+      const guardado = await guardarArchivoConDialogo(
+        jsonStr,
+        `evaluador-respaldo-${hoy}.json`,
+        'json',
+        'Archivo JSON'
+      );
+      if (guardado) {
+        setBackupStatus('✓ Respaldo solo JSON guardado correctamente.');
+        setTimeout(() => setBackupStatus(null), 3500);
+      }
     } catch (err: any) {
       setBackupStatus(`❌ Error al exportar JSON: ${err.message || 'desconocido'}`);
     }
@@ -178,9 +175,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
     try {
       const data = DatabaseService.exportarBackup(true);
       const hoy = new Date().toISOString().split('T')[0];
-      const countAdj = await generarZipDesdeBackup(data, `evaluador-respaldo-completo-${hoy}.zip`);
-      setBackupStatus(`✓ ZIP completo descargado (JSON + ${countAdj} archivo(s) adjunto(s)).`);
-      setTimeout(() => setBackupStatus(null), 4000);
+      const { countAdjuntos, guardado } = await generarZipDesdeBackup(
+        data,
+        `evaluador-respaldo-completo-${hoy}.zip`
+      );
+      if (guardado) {
+        setBackupStatus(`✓ ZIP completo guardado (JSON + ${countAdjuntos} archivo(s) adjunto(s)).`);
+        setTimeout(() => setBackupStatus(null), 4000);
+      }
     } catch (err: any) {
       setBackupStatus(`❌ Error al generar ZIP: ${err.message || 'desconocido'}`);
     }
@@ -201,18 +203,31 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
       const hoy = new Date().toISOString().split('T')[0];
 
       if (especificaConZip) {
-        const countAdj = await generarZipDesdeBackup(data, `evmim-especifico-${hoy}.zip`);
-        setBackupStatus(
-          `✓ Exportación específica en ZIP lista (${data.cursos.length} curso(s), ${data.asignaturas.length} asignatura(s), ${countAdj} adjunto(s)).`
+        const { countAdjuntos, guardado } = await generarZipDesdeBackup(
+          data,
+          `evmim-especifico-${hoy}.zip`
         );
+        if (guardado) {
+          setBackupStatus(
+            `✓ Exportación específica en ZIP guardada (${data.cursos.length} curso(s), ${data.asignaturas.length} asignatura(s), ${countAdjuntos} adjunto(s)).`
+          );
+          setTimeout(() => setBackupStatus(null), 4000);
+        }
       } else {
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        descargarBlob(blob, `evmim-especifico-${hoy}.json`);
-        setBackupStatus(
-          `✓ Exportación específica JSON lista (${data.cursos.length} curso(s), ${data.asignaturas.length} asignatura(s), ${data.actividades.length} actividad(es)).`
+        const jsonStr = JSON.stringify(data, null, 2);
+        const guardado = await guardarArchivoConDialogo(
+          jsonStr,
+          `evmim-especifico-${hoy}.json`,
+          'json',
+          'Archivo JSON'
         );
+        if (guardado) {
+          setBackupStatus(
+            `✓ Exportación específica JSON guardada (${data.cursos.length} curso(s), ${data.asignaturas.length} asignatura(s), ${data.actividades.length} actividad(es)).`
+          );
+          setTimeout(() => setBackupStatus(null), 4000);
+        }
       }
-      setTimeout(() => setBackupStatus(null), 4000);
     } catch (err: any) {
       setBackupStatus(`❌ Error en exportación específica: ${err.message || 'desconocido'}`);
     }

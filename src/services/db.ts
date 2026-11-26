@@ -13,6 +13,9 @@ import {
   ResumenMateriaHistorial,
   EvaluacionProfundaDetalle,
   BackupData,
+  RecuperacionAcademica,
+  PlanMejoraPeriodo,
+  HabilitacionAnual,
 } from '../types';
 
 const STORAGE_KEYS = {
@@ -25,6 +28,7 @@ const STORAGE_KEYS = {
   ACTIVIDADES: 'evaluador_actividades',
   CALIFICACIONES: 'evaluador_calificaciones',
   EVALUACIONES_PROFUNDAS: 'evaluador_evaluaciones_profundas',
+  RECUPERACIONES: 'evaluador_recuperaciones',
 };
 
 // Datos iniciales por defecto si está vacío
@@ -38,7 +42,7 @@ const DEFAULT_CONFIG: ConfiguracionSistema = {
   rangoBajoMax: 2.9,
   rangoBasicoMax: 3.9,
   rangoAltoMax: 4.5,
-  temaVisual: 'default',
+  temaVisual: 'orquidea',
   escalaUI: 1,
 };
 
@@ -51,17 +55,29 @@ const DEFAULT_CATEGORIAS: CategoriaEvaluacion[] = [
 ];
 
 export class DatabaseService {
+  private static memoryCache = new Map<string, any>();
+  private static califsByActCache: Map<string, Calificacion[]> | null = null;
+
   private static get<T>(key: string, defaultValue: T): T {
+    if (this.memoryCache.has(key)) {
+      return this.memoryCache.get(key) as T;
+    }
     const raw = localStorage.getItem(key);
     if (!raw) return defaultValue;
     try {
-      return JSON.parse(raw) as T;
+      const parsed = JSON.parse(raw) as T;
+      this.memoryCache.set(key, parsed);
+      return parsed;
     } catch {
       return defaultValue;
     }
   }
 
   private static set<T>(key: string, value: T): void {
+    this.memoryCache.set(key, value);
+    if (key === STORAGE_KEYS.CALIFICACIONES) {
+      this.califsByActCache = null;
+    }
     localStorage.setItem(key, JSON.stringify(value));
   }
 
@@ -522,9 +538,21 @@ export class DatabaseService {
 
   // --- CALIFICACIONES ---
   static getCalificaciones(actividadId?: string): Calificacion[] {
-    let list = this.get<Calificacion[]>(STORAGE_KEYS.CALIFICACIONES, []);
-    if (actividadId) list = list.filter(c => c.actividadId === actividadId);
-    return list;
+    const list = this.get<Calificacion[]>(STORAGE_KEYS.CALIFICACIONES, []);
+    if (!actividadId) return list;
+    if (!this.califsByActCache) {
+      const map = new Map<string, Calificacion[]>();
+      for (const c of list) {
+        let arr = map.get(c.actividadId);
+        if (!arr) {
+          arr = [];
+          map.set(c.actividadId, arr);
+        }
+        arr.push(c);
+      }
+      this.califsByActCache = map;
+    }
+    return this.califsByActCache.get(actividadId) || [];
   }
 
   static saveCalificacionesLote(califs: { estudianteId: string; actividadId: string; nota: number; observaciones?: string }[]): void {
@@ -555,31 +583,113 @@ export class DatabaseService {
     this.set(STORAGE_KEYS.CALIFICACIONES, Array.from(map.values()));
   }
 
+  // --- PLANES DE MEJORA POR PERIODO Y HABILITACIONES ANUALES ---
+  static getRecuperaciones(): RecuperacionAcademica[] {
+    return this.get<RecuperacionAcademica[]>(STORAGE_KEYS.RECUPERACIONES, []);
+  }
+
+  static getRecuperacion(estudianteId: string, targetId: string): RecuperacionAcademica | null {
+    if (!estudianteId || !targetId) return null;
+    const list = this.getRecuperaciones();
+    return list.find(r => r.estudianteId === estudianteId && r.targetId === targetId) || null;
+  }
+
+  static savePlanMejora(
+    estudianteId: string,
+    targetId: string,
+    periodo: number,
+    plan: PlanMejoraPeriodo
+  ): void {
+    const list = this.getRecuperaciones();
+    const id = `${estudianteId}__${targetId}`;
+    const idx = list.findIndex(r => r.estudianteId === estudianteId && r.targetId === targetId);
+    if (idx >= 0) {
+      list[idx] = {
+        ...list[idx],
+        planesMejora: { ...(list[idx].planesMejora || {}), [periodo]: plan },
+      };
+    } else {
+      list.push({
+        id,
+        estudianteId,
+        targetId,
+        planesMejora: { [periodo]: plan },
+      });
+    }
+    this.set(STORAGE_KEYS.RECUPERACIONES, list);
+  }
+
+  static saveHabilitacion(
+    estudianteId: string,
+    targetId: string,
+    habilitacion: HabilitacionAnual
+  ): void {
+    const list = this.getRecuperaciones();
+    const id = `${estudianteId}__${targetId}`;
+    const idx = list.findIndex(r => r.estudianteId === estudianteId && r.targetId === targetId);
+    if (idx >= 0) {
+      list[idx] = { ...list[idx], habilitacion };
+    } else {
+      list.push({
+        id,
+        estudianteId,
+        targetId,
+        planesMejora: {},
+        habilitacion,
+      });
+    }
+    this.set(STORAGE_KEYS.RECUPERACIONES, list);
+  }
+
   // --- CÁLCULO PONDERADO DE UN PERIODO Y META ANUAL ---
   static calcularPromedioPeriodoEstudiante(
     estudianteId: string,
     targetCursoId: string,
     periodo: number
   ): number | null {
+    // Si presentó y aprobó Plan de Mejora en este periodo, su nota definitiva es la del plan de mejora
+    const rec = this.getRecuperacion(estudianteId, targetCursoId);
+    const pm = rec?.planesMejora?.[periodo];
+    if (pm?.presenta && pm.aprobo && pm.nota !== undefined && !isNaN(pm.nota)) {
+      return Number(pm.nota.toFixed(2));
+    }
+
     const categorias = this.getCategorias();
     const actividadesCurso = targetCursoId ? this.getActividades(targetCursoId, periodo) : [];
     if (actividadesCurso.length === 0) return null;
 
-    const todasCalificaciones = this.get<Calificacion[]>(STORAGE_KEYS.CALIFICACIONES, []).filter(
-      c => c.estudianteId === estudianteId && actividadesCurso.some(a => a.id === c.actividadId)
-    );
+    // Usar índice por actividad en O(1) en vez de escanear todas las calificaciones
+    const notaPorAct = new Map<string, number>();
+    for (const act of actividadesCurso) {
+      const califsAct = this.getCalificaciones(act.id);
+      for (const c of califsAct) {
+        if (c.estudianteId === estudianteId) {
+          notaPorAct.set(act.id, c.nota);
+          break;
+        }
+      }
+    }
+
+    if (notaPorAct.size === 0) return null;
 
     let sumaPonderada = 0;
     let pesoTotal = 0;
     for (const cat of categorias) {
-      const actsCat = actividadesCurso.filter(a => a.categoriaId === cat.id);
-      if (actsCat.length > 0) {
-        const califsCat = todasCalificaciones.filter(c => actsCat.some(a => a.id === c.actividadId));
-        if (califsCat.length > 0) {
-          const promCat = califsCat.reduce((acc, curr) => acc + curr.nota, 0) / califsCat.length;
-          sumaPonderada += promCat * (cat.pesoPorcentaje / 100);
-          pesoTotal += cat.pesoPorcentaje;
+      let sumaCat = 0;
+      let countCat = 0;
+      for (const act of actividadesCurso) {
+        if (act.categoriaId === cat.id) {
+          const nota = notaPorAct.get(act.id);
+          if (nota !== undefined) {
+            sumaCat += nota;
+            countCat++;
+          }
         }
+      }
+      if (countCat > 0) {
+        const promCat = sumaCat / countCat;
+        sumaPonderada += promCat * (cat.pesoPorcentaje / 100);
+        pesoTotal += cat.pesoPorcentaje;
       }
     }
 
@@ -592,6 +702,16 @@ export class DatabaseService {
     targetCursoId: string
   ): number {
     const config = this.getConfiguracion();
+    const rec = this.getRecuperacion(estudianteId, targetCursoId);
+    if (
+      rec?.habilitacion?.presenta &&
+      rec.habilitacion.aprobo &&
+      rec.habilitacion.nota !== undefined &&
+      !isNaN(rec.habilitacion.nota)
+    ) {
+      return Number(rec.habilitacion.nota.toFixed(2));
+    }
+
     const totalPeriodos = Math.max(1, config.periodosCount || 4);
     const pesos = config.pesosPeriodos || [];
 
@@ -639,7 +759,11 @@ export class DatabaseService {
   }
 
   // --- MODELADO ORIENTADO A OBJETOS: CÁLCULOS ESTADÍSTICOS Y PREDICTIVOS ---
-  static getResumenEstudiante(estudianteId: string, cursoId?: string): ResumenEstudiante | null {
+  static getResumenEstudiante(
+    estudianteId: string,
+    cursoId?: string,
+    periodoOverride?: number
+  ): ResumenEstudiante | null {
     const estudiantes = this.getEstudiantes();
     const estudiante = estudiantes.find(e => e.id === estudianteId);
     if (!estudiante) return null;
@@ -659,7 +783,7 @@ export class DatabaseService {
         curso = todosCursos.find(c => c.id === asig.cursoId);
       }
     }
-    const periodoActual = curso?.periodoActual || 1;
+    const periodoActual = periodoOverride || curso?.periodoActual || 1;
 
     const actividadesCurso = targetCursoId ? this.getActividades(targetCursoId) : [];
     const todasCalificaciones = this.get<Calificacion[]>(STORAGE_KEYS.CALIFICACIONES, [])
@@ -685,10 +809,19 @@ export class DatabaseService {
       }
     }
 
-    // Promedio del periodo actual normalizado a lo calificado
-    const promPeriodoActual = pesoTotalEvaluadoActual > 0
+    // Promedio del periodo actual normalizado a lo calificado (o nota de Plan de Mejora si aprobó)
+    const rec = this.getRecuperacion(estudianteId, targetCursoId);
+    const planMejoraActivo = rec?.planesMejora?.[periodoActual];
+    const promBasePeriodo = pesoTotalEvaluadoActual > 0
       ? Number(((sumaPonderadaPeriodoActual / (pesoTotalEvaluadoActual / 100))).toFixed(2))
       : 0;
+    const promPeriodoActual =
+      planMejoraActivo?.presenta &&
+      planMejoraActivo.aprobo &&
+      planMejoraActivo.nota !== undefined &&
+      !isNaN(planMejoraActivo.nota)
+        ? Number(planMejoraActivo.nota.toFixed(2))
+        : promBasePeriodo;
 
     // Calcular periodos pasados usando promedio ponderado por categorías
     for (let p = 1; p <= config.periodosCount; p++) {
@@ -712,6 +845,7 @@ export class DatabaseService {
     // Promedio acumulado anual (asumiendo nota mínima en periodos vacíos) y meta en último periodo
     const promedioAcumuladoAnio = this.calcularPromedioAcumuladoAnio(estudianteId, targetCursoId);
     const metaAnio = this.calcularNotaNecesariaAnio(estudianteId, targetCursoId, periodoActual);
+    const habilitacion = rec?.habilitacion;
 
     // Estado
     let estado: 'aprobado' | 'en_riesgo' | 'reprobado' = 'aprobado';
@@ -732,7 +866,9 @@ export class DatabaseService {
       notaNecesariaEstimada: notaNecesaria,
       promedioAcumuladoAnio,
       notaNecesariaAnio: metaAnio?.notaNecesariaAnio,
-      yaAproboAnio: metaAnio?.yaAproboAnio,
+      yaAproboAnio: metaAnio?.yaAproboAnio || Boolean(habilitacion?.presenta && habilitacion?.aprobo),
+      planMejoraActivo,
+      habilitacion,
     };
   }
 
@@ -777,11 +913,20 @@ export class DatabaseService {
       for (const mat of materiasInscritas.length > 0 ? materiasInscritas : materiasDelCurso) {
         const actsMat = this.getActividades(mat.id);
         const califsMat = todasCalificaciones.filter(c => actsMat.some(a => a.id === c.actividadId));
+        const rec = this.getRecuperacion(estudianteId, mat.id);
 
         const promediosPeriodo: { [p: number]: number } = {};
         const periodosConNota: number[] = [];
 
         for (let p = 1; p <= config.periodosCount; p++) {
+          const pm = rec?.planesMejora?.[p];
+          if (pm?.presenta && pm.aprobo && pm.nota !== undefined && !isNaN(pm.nota)) {
+            const notaPm = Number(pm.nota.toFixed(2));
+            promediosPeriodo[p] = notaPm;
+            periodosConNota.push(notaPm);
+            continue;
+          }
+
           const actsP = actsMat.filter(a => a.periodo === p);
           let sumaP = 0;
           let pesoP = 0;
@@ -807,10 +952,15 @@ export class DatabaseService {
           }
         }
 
-        const promFinalMateria =
+        const hab = rec?.habilitacion;
+        const promBaseMateria =
           periodosConNota.length > 0
             ? Number((periodosConNota.reduce((a, b) => a + b, 0) / periodosConNota.length).toFixed(2))
             : 0;
+        const promFinalMateria =
+          hab?.presenta && hab.aprobo && hab.nota !== undefined && !isNaN(hab.nota)
+            ? Number(hab.nota.toFixed(2))
+            : promBaseMateria;
 
         materiasResumen.push({
           asignaturaId: mat.id,
@@ -824,6 +974,8 @@ export class DatabaseService {
               : promFinalMateria > 0
               ? 'reprobado'
               : 'en_riesgo',
+          planesMejora: rec?.planesMejora,
+          habilitacion: hab,
         });
       }
 
@@ -931,6 +1083,7 @@ export class DatabaseService {
       actividades: actividadesParaExportar,
       calificaciones: this.get<Calificacion[]>(STORAGE_KEYS.CALIFICACIONES, []),
       evaluacionesProfundas: this.get<EvaluacionProfundaDetalle[]>(STORAGE_KEYS.EVALUACIONES_PROFUNDAS, []),
+      recuperaciones: this.getRecuperaciones(),
     };
   }
 
@@ -1048,6 +1201,9 @@ export class DatabaseService {
       if (Array.isArray(data.calificaciones)) this.set(STORAGE_KEYS.CALIFICACIONES, data.calificaciones);
       if (Array.isArray(data.evaluacionesProfundas)) {
         this.set(STORAGE_KEYS.EVALUACIONES_PROFUNDAS, data.evaluacionesProfundas);
+      }
+      if (Array.isArray(data.recuperaciones)) {
+        this.set(STORAGE_KEYS.RECUPERACIONES, data.recuperaciones);
       }
 
       return {

@@ -7,6 +7,7 @@ import { EstudiantesManager } from './components/EstudiantesManager';
 import { EditarCursoModal } from './components/EditarCursoModal';
 import { ExpedienteEstudianteModal } from './components/ExpedienteEstudianteModal';
 import { CalculadoraNotasWidget } from './components/CalculadoraNotasWidget';
+import { GlobalConfirmDialog, confirmarAccion } from './components/ConfirmModal';
 import {
   GraduationCap,
   Settings,
@@ -76,12 +77,12 @@ function App() {
     setCursos(DatabaseService.getCursos(nuevo.id));
   };
 
-  const handleEliminarAnio = (id: string, nombre: string) => {
-    if (
-      confirm(
-        `¿Eliminar el Año "${nombre}"? Se eliminarán todos los cursos, asignaturas y actividades asociadas a este año.`
-      )
-    ) {
+  const handleEliminarAnio = async (id: string, nombre: string) => {
+    const ok = await confirmarAccion({
+      titulo: `Eliminar Año "${nombre}"`,
+      mensaje: `¿Eliminar el Año "${nombre}"? Se eliminarán todos los cursos, asignaturas y actividades asociadas a este año.`,
+    });
+    if (ok) {
       DatabaseService.deleteAnio(id);
       refreshAll();
     }
@@ -183,6 +184,7 @@ function App() {
           onClose={() => setExpedienteOpen(false)}
         />
         <CalculadoraNotasWidget />
+        <GlobalConfirmDialog />
       </div>
     );
   }
@@ -434,13 +436,13 @@ function App() {
                       <Edit3 className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={e => {
+                      onClick={async e => {
                         e.stopPropagation();
-                        if (
-                          confirm(
-                            `¿Eliminar el curso "${curso.nombre}"? Se perderán todas sus asignaturas, actividades y notas.`
-                          )
-                        ) {
+                        const ok = await confirmarAccion({
+                          titulo: `Eliminar curso "${curso.nombre}"`,
+                          mensaje: `¿Eliminar el curso "${curso.nombre}"? Se perderán todas sus asignaturas, actividades y notas.`,
+                        });
+                        if (ok) {
                           DatabaseService.deleteCurso(curso.id);
                           refreshAll();
                         }
@@ -492,6 +494,7 @@ function App() {
         />
       )}
       <CalculadoraNotasWidget />
+      <GlobalConfirmDialog />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Actividad, Curso } from '../types';
 import { DatabaseService } from '../services/db';
+import { confirmarAccion } from './ConfirmModal';
 import { Plus, Calendar, FileText, Paperclip, X, Save, Trash2 } from 'lucide-react';
 
 interface NuevaActividadModalProps {
@@ -112,9 +113,13 @@ export const NuevaActividadModal: React.FC<NuevaActividadModalProps> = ({
     }
   };
 
-  const handleEliminar = () => {
+  const handleEliminar = async () => {
     if (!actividadParaEditar) return;
-    if (confirm(`¿Eliminar la actividad "${actividadParaEditar.titulo}"? Sus calificaciones asociadas se borrarán permanentemente.`)) {
+    const ok = await confirmarAccion({
+      titulo: 'Eliminar actividad',
+      mensaje: `¿Eliminar la actividad "${actividadParaEditar.titulo}"? Sus calificaciones asociadas se borrarán permanentemente.`,
+    });
+    if (ok) {
       DatabaseService.deleteActividad(actividadParaEditar.id);
       onDeleted?.(actividadParaEditar.id);
       onClose();

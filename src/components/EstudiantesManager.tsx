@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Estudiante, Curso } from '../types';
 import { DatabaseService } from '../services/db';
+import { confirmarAccion } from './ConfirmModal';
 import { UserPlus, Search, Trash2, X, Check, BookOpen, Plus, Edit3, Award } from 'lucide-react';
 import { EditarEstudianteModal } from './EditarEstudianteModal';
 import { ExpedienteEstudianteModal } from './ExpedienteEstudianteModal';
@@ -81,8 +82,12 @@ export const EstudiantesManager: React.FC<EstudiantesManagerProps> = ({
     setEstudianteEditando(est);
   };
 
-  const handleEliminar = (id: string) => {
-    if (!confirm('¿Eliminar este estudiante del sistema? Sus notas en todos los cursos se perderán.')) return;
+  const handleEliminar = async (id: string) => {
+    const ok = await confirmarAccion({
+      titulo: 'Eliminar estudiante',
+      mensaje: '¿Eliminar este estudiante del sistema? Sus notas en todos los cursos se perderán.',
+    });
+    if (!ok) return;
     DatabaseService.deleteEstudiante(id);
     refresh();
   };

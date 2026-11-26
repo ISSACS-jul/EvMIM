@@ -10,6 +10,7 @@ import { FichaEstudiante } from './FichaEstudiante';
 import { EstudiantesManager } from './EstudiantesManager';
 import { EditarEstudianteModal } from './EditarEstudianteModal';
 import { EvaluadorProfundoModal } from './EvaluadorProfundoModal';
+import { confirmarAccion } from './ConfirmModal';
 import { BoxPlotChart, PieChart, RadarChart, BarChartSimple } from './Charts';
 import {
   Plus,
@@ -87,12 +88,12 @@ export const CursoView: React.FC<CursoViewProps> = ({
     onCursoUpdated(cursoActualizado);
   };
 
-  const handleEliminarCurso = () => {
-    if (
-      confirm(
-        `¿Eliminar el curso "${curso.nombre}"? Se perderán todas sus asignaturas, actividades y notas asociadas.`
-      )
-    ) {
+  const handleEliminarCurso = async () => {
+    const ok = await confirmarAccion({
+      titulo: `Eliminar curso "${curso.nombre}"`,
+      mensaje: `¿Eliminar el curso "${curso.nombre}"? Se perderán todas sus asignaturas, actividades y notas asociadas.`,
+    });
+    if (ok) {
       DatabaseService.deleteCurso(curso.id);
       onCursoDeleted?.();
     }
@@ -122,12 +123,12 @@ export const CursoView: React.FC<CursoViewProps> = ({
   };
 
   // Eliminar asignatura
-  const handleEliminarAsignatura = (asigId: string, asigNombre: string) => {
-    if (
-      confirm(
-        `¿Eliminar la asignatura "${asigNombre}"? Se borrarán sus actividades y calificaciones asociadas.`
-      )
-    ) {
+  const handleEliminarAsignatura = async (asigId: string, asigNombre: string) => {
+    const ok = await confirmarAccion({
+      titulo: `Eliminar asignatura "${asigNombre}"`,
+      mensaje: `¿Eliminar la asignatura "${asigNombre}"? Se borrarán sus actividades y calificaciones asociadas.`,
+    });
+    if (ok) {
       DatabaseService.deleteAsignatura(asigId);
       if (selectedAsignaturaId === asigId) {
         const restantes = asignaturas.filter(a => a.id !== asigId);
@@ -138,8 +139,12 @@ export const CursoView: React.FC<CursoViewProps> = ({
   };
 
   // Eliminar actividad
-  const handleEliminarActividad = (actId: string, actTitulo: string) => {
-    if (confirm(`¿Eliminar la actividad "${actTitulo}"? Se borrarán todas sus calificaciones.`)) {
+  const handleEliminarActividad = async (actId: string, actTitulo: string) => {
+    const ok = await confirmarAccion({
+      titulo: `Eliminar actividad "${actTitulo}"`,
+      mensaje: `¿Eliminar la actividad "${actTitulo}"? Se borrarán todas sus calificaciones.`,
+    });
+    if (ok) {
       DatabaseService.deleteActividad(actId);
       handleRefresh();
     }
@@ -550,10 +555,11 @@ export const CursoView: React.FC<CursoViewProps> = ({
                   </div>
                 </div>
                 <Planilla
-                  key={`${curso.id}-${currentTargetId}-${periodo}-${refresh}`}
+                  key={`${curso.id}-${currentTargetId}-${periodo}`}
                   curso={curso}
                   periodo={periodo}
                   asignaturaId={activeAsignatura.id}
+                  refreshTrigger={refresh}
                   onRefresh={handleRefresh}
                 />
               </>
@@ -1279,7 +1285,9 @@ export const CursoView: React.FC<CursoViewProps> = ({
       {fichaEstudianteId && (
         <FichaEstudiante
           estudianteId={fichaEstudianteId}
-          cursoId={currentTargetId}
+          cursoId={curso.id}
+          asignaturaId={activeAsignatura?.id}
+          periodo={periodo}
           onClose={() => setFichaEstudianteId(null)}
           onUpdated={handleRefresh}
         />

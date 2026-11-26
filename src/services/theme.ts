@@ -10,8 +10,17 @@ export const TEMAS_INFO: {
   isDark: boolean;
 }[] = [
   {
+    id: 'orquidea',
+    nombre: 'Orquídea Nocturna (Default)',
+    descripcion: 'Azul noche profundo mate con acentos lila y magenta suaves del logo',
+    previewBg: '#050a18',
+    previewCard: '#0b1226',
+    previewAccent: '#8a307a',
+    isDark: true,
+  },
+  {
     id: 'default',
-    nombre: 'Default (Oscuro Clásico)',
+    nombre: 'Oscuro Clásico',
     descripcion: 'Pizarra oscura suave con acentos azul cielo equilibrados',
     previewBg: '#0f172a',
     previewCard: '#1e293b',
@@ -83,7 +92,7 @@ export function inicializarTemaYEscala(defaultTema?: TemaVisual, defaultEscala?:
   const savedTheme =
     (localStorage.getItem('evaluador_tema_visual') as TemaVisual) ||
     defaultTema ||
-    'default';
+    'orquidea';
   const savedScale =
     Number(localStorage.getItem('evaluador_ui_scale')) || defaultEscala || 1;
 

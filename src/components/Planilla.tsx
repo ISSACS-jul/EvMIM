@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Actividad, Calificacion, Estudiante, Curso } from '../types';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Actividad, Calificacion, Estudiante, Curso, RecuperacionAcademica } from '../types';
 import { DatabaseService } from '../services/db';
 import { FichaEstudiante } from './FichaEstudiante';
 import { CheckCircle2 } from 'lucide-react';
@@ -8,6 +8,7 @@ interface PlanillaProps {
   curso: Curso;
   periodo: number;
   asignaturaId?: string;
+  refreshTrigger?: number;
   onRefresh?: () => void;
 }
 
@@ -17,7 +18,7 @@ interface CeldaEditando {
   valorActual: string;
 }
 
-export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId, onRefresh }) => {
+export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId, refreshTrigger, onRefresh }) => {
   const config = DatabaseService.getConfiguracion();
   const categorias = DatabaseService.getCategorias();
   const [estudiantes, setEstudiantes] = useState<Estudiante[]>([]);
@@ -27,6 +28,7 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
   const [celdaSeleccionada, setCeldaSeleccionada] = useState<{ estudianteId: string; actividadId: string } | null>(null);
   const [mensajeNotificacion, setMensajeNotificacion] = useState<{ tipo: 'exito' | 'info'; texto: string } | null>(null);
   const [fichaEstudianteId, setFichaEstudianteId] = useState<string | null>(null);
+  const [filtroReporte, setFiltroReporte] = useState<'todos' | 'pierden' | 'basico'>('todos');
   const [refresh, setRefresh] = useState(0);
 
   const categoriasCon = categorias.filter(cat => actividades.some(a => a.categoriaId === cat.id));
@@ -97,21 +99,50 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
 
   useEffect(() => {
     const todosCurso = DatabaseService.getEstudiantes(curso.id);
+    const actsLoaded = asignaturaId
+      ? DatabaseService.getActividades(asignaturaId, periodo)
+      : DatabaseService.getActividades(curso.id, periodo);
     if (asignaturaId) {
       const filtrados = todosCurso.filter(
         e => !e.asignaturaIds || e.asignaturaIds.length === 0 || e.asignaturaIds.includes(asignaturaId)
       );
       setEstudiantes(ordenarPorApellido(filtrados));
-      setActividades(DatabaseService.getActividades(asignaturaId, periodo));
     } else {
       setEstudiantes(ordenarPorApellido(todosCurso));
-      setActividades(DatabaseService.getActividades(curso.id, periodo));
     }
-    setCalificaciones(DatabaseService.getCalificaciones());
-  }, [curso.id, periodo, asignaturaId, refresh]);
+    setActividades(actsLoaded);
+
+    // Cargar únicamente las calificaciones de las actividades visibles en esta planilla
+    const califsFiltradas: Calificacion[] = [];
+    for (const act of actsLoaded) {
+      califsFiltradas.push(...DatabaseService.getCalificaciones(act.id));
+    }
+    setCalificaciones(califsFiltradas);
+  }, [curso.id, periodo, asignaturaId, refresh, refreshTrigger]);
+
+  // Índice O(1) para consultar la nota de un estudiante en una actividad
+  const calificacionesMap = useMemo(() => {
+    const map = new Map<string, Calificacion>();
+    for (const c of calificaciones) {
+      map.set(`${c.estudianteId}_${c.actividadId}`, c);
+    }
+    return map;
+  }, [calificaciones]);
+
+  // Índice O(1) para recuperaciones (Plan de Mejora / Habilitación) del target actual
+  const targetId = asignaturaId || curso.id;
+  const recuperacionesMap = useMemo(() => {
+    const map = new Map<string, RecuperacionAcademica>();
+    for (const r of DatabaseService.getRecuperaciones()) {
+      if (r.targetId === targetId) {
+        map.set(r.estudianteId, r);
+      }
+    }
+    return map;
+  }, [targetId, refresh, refreshTrigger]);
 
   const getNota = (estudianteId: string, actividadId: string): Calificacion | undefined =>
-    calificaciones.find(c => c.estudianteId === estudianteId && c.actividadId === actividadId);
+    calificacionesMap.get(`${estudianteId}_${actividadId}`);
 
   const handleCeldaClick = (estudianteId: string, actividadId: string) => {
     const cal = getNota(estudianteId, actividadId);
@@ -210,6 +241,35 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
     return notas.reduce((a, b) => a + b, 0) / notas.length;
   };
 
+  const getNotaFinalEfectiva = (estudianteId: string): number | null => {
+    const rec = recuperacionesMap.get(estudianteId);
+    const pm = rec?.planesMejora?.[periodo];
+    if (pm?.presenta && pm.aprobo && pm.nota !== undefined) {
+      return pm.nota;
+    }
+    return promFinal(estudianteId);
+  };
+
+  const rangoBasicoMax = config.rangoBasicoMax ?? Number((config.notaAprobatoria + 0.9).toFixed(2));
+
+  const estudiantesPierdenCount = estudiantes.filter(e => {
+    const n = getNotaFinalEfectiva(e.id);
+    return n !== null && n < config.notaAprobatoria;
+  }).length;
+
+  const estudiantesBasicoCount = estudiantes.filter(e => {
+    const n = getNotaFinalEfectiva(e.id);
+    return n !== null && n >= config.notaAprobatoria && n <= rangoBasicoMax;
+  }).length;
+
+  const estudiantesVisibles = estudiantes.filter(e => {
+    if (filtroReporte === 'todos') return true;
+    const n = getNotaFinalEfectiva(e.id);
+    if (n === null) return false;
+    if (filtroReporte === 'pierden') return n < config.notaAprobatoria;
+    return n >= config.notaAprobatoria && n <= rangoBasicoMax;
+  });
+
   if (estudiantes.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-slate-500">
@@ -245,6 +305,53 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
         </div>
       )}
 
+      {/* Barra de Reportes / Filtros rápidos */}
+      <div className="flex items-center justify-between flex-wrap gap-2 mb-2.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mr-1">
+            Reportes:
+          </span>
+          <button
+            type="button"
+            onClick={() => setFiltroReporte('todos')}
+            className={`px-3 py-1 rounded-lg text-xs font-semibold border transition ${
+              filtroReporte === 'todos'
+                ? 'bg-sky-600 border-sky-500 text-white shadow'
+                : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+            }`}
+          >
+            Todos ({estudiantes.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setFiltroReporte('pierden')}
+            className={`px-3 py-1 rounded-lg text-xs font-semibold border transition ${
+              filtroReporte === 'pierden'
+                ? 'bg-rose-600 border-rose-500 text-white shadow'
+                : 'bg-slate-800 border-slate-700 text-rose-400 hover:bg-rose-500/10'
+            }`}
+          >
+            Pierden ({estudiantesPierdenCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => setFiltroReporte('basico')}
+            className={`px-3 py-1 rounded-lg text-xs font-semibold border transition ${
+              filtroReporte === 'basico'
+                ? 'bg-amber-600 border-amber-500 text-white shadow'
+                : 'bg-slate-800 border-slate-700 text-amber-400 hover:bg-amber-500/10'
+            }`}
+          >
+            En Básico ({estudiantesBasicoCount})
+          </button>
+        </div>
+        {filtroReporte !== 'todos' && (
+          <span className="text-[11px] text-slate-400">
+            Mostrando {estudiantesVisibles.length} de {estudiantes.length} estudiantes
+          </span>
+        )}
+      </div>
+
       <div
         className="planilla-container rounded-xl border border-slate-700 overflow-auto max-h-[calc(100vh-220px)] outline-none"
         tabIndex={0}
@@ -266,10 +373,11 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
               <th className="sticky-col-2 bg-slate-900 border-b border-r border-slate-700 px-3 py-2 text-left text-slate-300 font-semibold min-w-[160px]">Estudiante</th>
               {categoriasCon.map(cat => {
                 const actsDeCategoria = actividades.filter(a => a.categoriaId === cat.id);
+                const esUnica = actsDeCategoria.length === 1;
                 return (
                   <th
                     key={cat.id}
-                    colSpan={actsDeCategoria.length + 1} // +1 por DEF
+                    colSpan={esUnica ? 1 : actsDeCategoria.length + 1}
                     className="border-b border-r border-slate-700 px-2 py-1.5 text-center font-bold uppercase tracking-wide"
                     style={{ backgroundColor: cat.color + '33', color: cat.color }}
                   >
@@ -296,25 +404,28 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
               <th className="sticky-col-2 bg-slate-800 border-b border-r border-slate-700 px-3 py-2 text-slate-400 text-left">Apellido, Nombre</th>
               {categoriasCon.map(cat => {
                 const actsDeCategoria = actividades.filter(a => a.categoriaId === cat.id);
+                const esUnica = actsDeCategoria.length === 1;
                 return (
                   <React.Fragment key={cat.id}>
                     {actsDeCategoria.map((act, idx) => (
                       <th
                         key={act.id}
-                        className="border-b border-r border-slate-700 px-2 py-1 text-center text-slate-300 font-medium max-w-[64px]"
+                        className="border-b border-r border-slate-700 px-2 py-1 text-center text-slate-300 font-medium max-w-[74px]"
                         title={`${act.titulo}\n${act.descripcion || ''}\nFecha: ${act.fechaActividad}`}
                       >
-                        <span className="block truncate max-w-[60px]" title={act.titulo}>
-                          #{idx + 1}
+                        <span className="block truncate max-w-[68px]" title={act.titulo}>
+                          {esUnica ? 'Nota / DEF' : `#${idx + 1}`}
                         </span>
-                        <span className="block text-slate-500 font-normal truncate max-w-[60px]" title={act.titulo}>
-                          {act.titulo.slice(0, 8)}
+                        <span className="block text-slate-500 font-normal truncate max-w-[68px]" title={act.titulo}>
+                          {act.titulo.slice(0, 10)}
                         </span>
                       </th>
                     ))}
-                    <th className="border-b border-r border-slate-700 px-2 py-1 text-center font-bold text-slate-200 bg-slate-700/50">
-                      DEF
-                    </th>
+                    {!esUnica && (
+                      <th className="border-b border-r border-slate-700 px-2 py-1 text-center font-bold text-slate-200 bg-slate-700/50">
+                        DEF
+                      </th>
+                    )}
                   </React.Fragment>
                 );
               })}
@@ -334,21 +445,29 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
               <td className="sticky-col-2 bg-slate-800 border-r border-slate-700 px-3 py-1.5 text-slate-400 font-semibold italic">Promedio del curso</td>
               {categoriasCon.map(cat => {
                 const actsDeCategoria = actividades.filter(a => a.categoriaId === cat.id);
+                const esUnica = actsDeCategoria.length === 1;
                 return (
                   <React.Fragment key={cat.id}>
                     {actsDeCategoria.map(act => {
                       const p = promActividad(act.id);
                       return (
-                        <td key={act.id} className={`border-r border-slate-700 px-2 py-1.5 text-center font-bold ${getNotaColor(p)}`}>
-                          {p !== null ? p.toFixed(1) : '—'}
+                        <td
+                          key={act.id}
+                          className="border-r border-slate-700 px-2 py-1.5 text-center font-bold"
+                        >
+                          <span className={getNotaColor(p)}>
+                            {p !== null ? p.toFixed(1) : '—'}
+                          </span>
                         </td>
                       );
                     })}
-                    <td className="border-r border-slate-700 px-2 py-1.5 text-center font-bold bg-slate-700/40">
-                      <span className={getNotaColor(promDefCat(cat.id))}>
-                        {promDefCat(cat.id) !== null ? promDefCat(cat.id)!.toFixed(1) : '—'}
-                      </span>
-                    </td>
+                    {!esUnica && (
+                      <td className="border-r border-slate-700 px-2 py-1.5 text-center font-bold bg-slate-700/40">
+                        <span className={promDefCat(cat.id) !== null ? `${getNotaBg(promDefCat(cat.id))} px-2 py-0.5 rounded` : 'text-slate-500'}>
+                          {promDefCat(cat.id) !== null ? promDefCat(cat.id)!.toFixed(1) : '—'}
+                        </span>
+                      </td>
+                    )}
                   </React.Fragment>
                 );
               })}
@@ -367,7 +486,13 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
             </tr>
 
             {/* Filas de estudiantes */}
-            {estudiantes.map((est, idx) => {
+            {estudiantesVisibles.length === 0 ? (
+              <tr>
+                <td colSpan={20} className="py-10 text-center text-xs text-slate-400 italic">
+                  No hay estudiantes en esta categoría de reporte para el Periodo {periodo}.
+                </td>
+              </tr>
+            ) : estudiantesVisibles.map((est, idx) => {
               const finalEst = promFinal(est.id);
               return (
                 <tr key={est.id} className="border-b border-slate-700/50 hover:bg-slate-800/60 transition-colors group">
@@ -385,6 +510,7 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
 
                   {categoriasCon.map(cat => {
                     const actsDeCategoria = actividades.filter(a => a.categoriaId === cat.id);
+                    const esUnica = actsDeCategoria.length === 1;
                     const pCat = promCat(est.id, cat.id);
                     return (
                       <React.Fragment key={cat.id}>
@@ -398,7 +524,7 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
                               key={act.id}
                               className={`border-r border-slate-700/50 px-1 py-1 text-center cursor-pointer transition ${
                                 isSelected ? 'ring-2 ring-sky-400 bg-sky-500/20' : ''
-                              }`}
+                              } ${esUnica ? 'bg-slate-800/40' : ''}`}
                               onClick={() => {
                                 setCeldaSeleccionada({ estudianteId: est.id, actividadId: act.id });
                                 if (!isEditing) handleCeldaClick(est.id, act.id);
@@ -426,39 +552,104 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
                                   className="w-14 text-center bg-sky-900 border border-sky-500 rounded text-sky-200 text-xs py-0.5 outline-none font-bold"
                                 />
                               ) : (
-                                <span className={`inline-block w-12 py-0.5 rounded text-xs font-semibold ${cal ? getNotaBg(cal.nota) : 'text-slate-600 hover:bg-slate-700/50 hover:text-slate-400'}`}>
+                                <span
+                                  className={`inline-block w-12 py-0.5 rounded text-xs ${
+                                    cal
+                                      ? `${getNotaColor(cal.nota)} font-semibold`
+                                      : 'text-slate-600 hover:bg-slate-700/50 hover:text-slate-400'
+                                  }`}
+                                >
                                   {cal ? cal.nota.toFixed(1) : '·'}
                                 </span>
                               )}
                             </td>
                           );
                         })}
-                        {/* DEF de la categoría */}
-                        <td
-                          className="border-r border-slate-700 px-2 py-1.5 text-center font-bold cursor-pointer bg-slate-800/40 hover:bg-slate-700/40"
-                          onClick={() => setFichaEstudianteId(est.id)}
-                        >
-                          <span className={`text-sm ${getNotaColor(pCat)}`}>
-                            {pCat !== null ? pCat.toFixed(1) : '—'}
-                          </span>
-                        </td>
+                        {/* DEF de la categoría (solo si hay más de 1 actividad) */}
+                        {!esUnica && (
+                          <td
+                            className="border-r border-slate-700 px-2 py-1.5 text-center font-bold cursor-pointer bg-slate-800/40 hover:bg-slate-700/40"
+                            onClick={() => setFichaEstudianteId(est.id)}
+                          >
+                            <span className={`text-sm font-bold px-2 py-0.5 rounded ${pCat !== null ? getNotaBg(pCat) : 'text-slate-500'}`}>
+                              {pCat !== null ? pCat.toFixed(1) : '—'}
+                            </span>
+                          </td>
+                        )}
                       </React.Fragment>
                     );
                   })}
 
-                  {/* Promedio final del periodo */}
-                  <td
-                    className="px-2 py-1.5 text-center cursor-pointer bg-purple-500/10 hover:bg-purple-500/20"
-                    onClick={() => setFichaEstudianteId(est.id)}
-                  >
-                    <span className={`text-sm font-black ${getNotaBg(finalEst)} px-2 py-0.5 rounded`}>
-                      {finalEst !== null ? finalEst.toFixed(2) : '—'}
-                    </span>
-                  </td>
+                  {/* Promedio final del periodo (o Plan de Mejora aprobado/presentado) */}
+                  {(() => {
+                    const rec = recuperacionesMap.get(est.id);
+                    const pm = rec?.planesMejora?.[periodo];
+                    const tienePmPresentado = Boolean(pm?.presenta);
+                    const tienePmAprobado = Boolean(pm?.presenta && pm.aprobo && pm.nota !== undefined);
+                    const notaFinalMostrar = tienePmAprobado ? pm!.nota! : finalEst;
+                    return (
+                      <td
+                        className="px-2 py-1.5 text-center cursor-pointer bg-purple-500/10 hover:bg-purple-500/20"
+                        onClick={() => setFichaEstudianteId(est.id)}
+                        title={
+                          tienePmAprobado
+                            ? `Plan de Mejora aprobado (nota original: ${finalEst !== null ? finalEst.toFixed(2) : '—'})`
+                            : tienePmPresentado
+                            ? 'Presentó Plan de Mejora y no aprobó'
+                            : 'Ver ficha / gestionar Plan de Mejora'
+                        }
+                      >
+                        <div className="inline-flex items-center gap-1">
+                          <span className={`text-sm font-black ${getNotaBg(notaFinalMostrar)} px-2 py-0.5 rounded`}>
+                            {notaFinalMostrar !== null ? notaFinalMostrar.toFixed(2) : '—'}
+                          </span>
+                          {tienePmPresentado && (
+                            <span
+                              className={`text-[9px] font-bold px-1 py-0.5 rounded border ${
+                                tienePmAprobado
+                                  ? 'bg-sky-500/25 text-sky-300 border-sky-500/40'
+                                  : 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                              }`}
+                            >
+                              {tienePmAprobado ? 'PM✓' : 'PM✗'}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    );
+                  })()}
 
                   {/* Nota necesaria para aprobar el año (visible al llegar al último periodo académico) */}
                   {periodo >= config.periodosCount && (() => {
-                    const targetId = asignaturaId || curso.id;
+                    const rec = recuperacionesMap.get(est.id);
+                    const hab = rec?.habilitacion;
+                    if (hab?.presenta && hab.aprobo && hab.nota !== undefined) {
+                      return (
+                        <td
+                          className="px-2 py-1.5 text-center cursor-pointer bg-sky-500/5 hover:bg-sky-500/15"
+                          onClick={() => setFichaEstudianteId(est.id)}
+                          title={`Habilitación anual aprobada con ${hab.nota.toFixed(2)}`}
+                        >
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                            HAB✓ {hab.nota.toFixed(1)}
+                          </span>
+                        </td>
+                      );
+                    }
+                    if (hab?.presenta && !hab.aprobo) {
+                      return (
+                        <td
+                          className="px-2 py-1.5 text-center cursor-pointer bg-sky-500/5 hover:bg-sky-500/15"
+                          onClick={() => setFichaEstudianteId(est.id)}
+                          title="Presentó Habilitación anual y no aprobó"
+                        >
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                            HAB✗
+                          </span>
+                        </td>
+                      );
+                    }
+
                     const meta = DatabaseService.calcularNotaNecesariaAnio(est.id, targetId, periodo);
                     if (!meta) {
                       return <td className="px-2 py-1.5 text-center text-slate-500 bg-sky-500/5">—</td>;
@@ -507,7 +698,13 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
         <FichaEstudiante
           estudianteId={fichaEstudianteId}
           cursoId={curso.id}
+          asignaturaId={asignaturaId}
+          periodo={periodo}
           onClose={() => setFichaEstudianteId(null)}
+          onUpdated={() => {
+            setRefresh(r => r + 1);
+            onRefresh?.();
+          }}
         />
       )}
     </>

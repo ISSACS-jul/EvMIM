@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Actividad, Curso, EvaluacionProfundaDetalle, CriterioRubrica } from '../types';
 import { DatabaseService } from '../services/db';
+import { confirmarAccion } from './ConfirmModal';
 import {
   X,
   CheckCircle,
@@ -708,8 +709,14 @@ export const EvaluadorProfundoModal: React.FC<EvaluadorProfundoModalProps> = ({
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => {
-                if (confirm('¿Restablecer todas las respuestas a cero?')) {
+              onClick={async () => {
+                const ok = await confirmarAccion({
+                  titulo: 'Restablecer evaluación',
+                  mensaje: '¿Restablecer todas las respuestas a cero?',
+                  textoConfirmar: 'Sí, restablecer',
+                  variante: 'advertencia',
+                });
+                if (ok) {
                   setAciertosPorEstudiante({});
                   setRespuestasPorPregunta({});
                   setNotasRubrica({});

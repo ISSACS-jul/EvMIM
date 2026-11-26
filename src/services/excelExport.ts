@@ -1,6 +1,7 @@
 import ExcelJS from 'exceljs';
 import { Asignatura, Curso, Estudiante } from '../types';
 import { DatabaseService } from './db';
+import { guardarArchivoConDialogo } from './fileSaver';
 
 const ordenarPorApellido = (lista: Estudiante[]) =>
   [...lista].sort((a, b) => {
@@ -121,46 +122,71 @@ export async function exportarPlanillaExcel(
     const actsCat = actividades.filter(a => a.categoriaId === cat.id);
     const paleta = PALETA_CATEGORIAS[catIdx % PALETA_CATEGORIAS.length];
     const startCol = colCursor;
+    const esUnica = actsCat.length === 1;
 
-    actsCat.forEach((_, idx) => {
-      const subCell = ws.getCell(2, colCursor);
-      subCell.value = `#${idx + 1}`;
-      subCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: paleta.body } };
-      subCell.font = boldFont;
-      subCell.alignment = { horizontal: 'center', vertical: 'middle' };
-      subCell.border = mediumBottomBorder;
+    if (esUnica) {
+      // Categoría de 1 sola nota (ej. Autoevaluación o Evaluación Final): una única columna combinada
+      ws.mergeCells(1, startCol, 2, startCol);
+      const catHeaderCell = ws.getCell(1, startCol);
+      catHeaderCell.value = `${cat.nombre} (${cat.pesoPorcentaje}%)`;
+      catHeaderCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: paleta.header } };
+      catHeaderCell.font = boldFont;
+      catHeaderCell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      ws.getCell(1, startCol).border = thinBorder;
+      ws.getCell(2, startCol).border = mediumBottomBorder;
+
+      catInfos.push({
+        catId: cat.id,
+        catNombre: cat.nombre,
+        peso: cat.pesoPorcentaje,
+        actStartCol: startCol,
+        actEndCol: startCol,
+        defCol: startCol,
+        acts: actsCat,
+        paleta,
+      });
       colCursor++;
-    });
+    } else {
+      actsCat.forEach((_, idx) => {
+        const subCell = ws.getCell(2, colCursor);
+        subCell.value = `#${idx + 1}`;
+        subCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: paleta.body } };
+        subCell.font = boldFont;
+        subCell.alignment = { horizontal: 'center', vertical: 'middle' };
+        subCell.border = mediumBottomBorder;
+        colCursor++;
+      });
 
-    const defCol = colCursor;
-    const defSubCell = ws.getCell(2, defCol);
-    defSubCell.value = 'DEF';
-    defSubCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: paleta.header } };
-    defSubCell.font = boldFont;
-    defSubCell.alignment = { horizontal: 'center', vertical: 'middle' };
-    defSubCell.border = mediumBottomBorder;
+      const defCol = colCursor;
+      const defSubCell = ws.getCell(2, defCol);
+      defSubCell.value = 'DEF';
+      defSubCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: paleta.header } };
+      defSubCell.font = boldFont;
+      defSubCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      defSubCell.border = mediumBottomBorder;
 
-    if (defCol > startCol) {
-      ws.mergeCells(1, startCol, 1, defCol);
+      if (defCol > startCol) {
+        ws.mergeCells(1, startCol, 1, defCol);
+      }
+      const catHeaderCell = ws.getCell(1, startCol);
+      catHeaderCell.value = `${cat.nombre} (${cat.pesoPorcentaje}%)`;
+      catHeaderCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: paleta.header } };
+      catHeaderCell.font = boldFont;
+      catHeaderCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      for (let c = startCol; c <= defCol; c++) ws.getCell(1, c).border = thinBorder;
+
+      catInfos.push({
+        catId: cat.id,
+        catNombre: cat.nombre,
+        peso: cat.pesoPorcentaje,
+        actStartCol: startCol,
+        actEndCol: defCol - 1,
+        defCol,
+        acts: actsCat,
+        paleta,
+      });
+      colCursor++;
     }
-    const catHeaderCell = ws.getCell(1, startCol);
-    catHeaderCell.value = `${cat.nombre} (${cat.pesoPorcentaje}%)`;
-    catHeaderCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: paleta.header } };
-    catHeaderCell.font = boldFont;
-    catHeaderCell.alignment = { horizontal: 'center', vertical: 'middle' };
-    for (let c = startCol; c <= defCol; c++) ws.getCell(1, c).border = thinBorder;
-
-    catInfos.push({
-      catId: cat.id,
-      catNombre: cat.nombre,
-      peso: cat.pesoPorcentaje,
-      actStartCol: startCol,
-      actEndCol: defCol - 1,
-      defCol,
-      acts: actsCat,
-      paleta,
-    });
-    colCursor++;
   });
 
   // Columna Final
@@ -218,6 +244,27 @@ export async function exportarPlanillaExcel(
     const defRefs: { colL: string; peso: number }[] = [];
 
     for (const cm of catInfos) {
+      const esUnica = cm.acts.length === 1;
+      if (esUnica) {
+        const nota = getNota(est.id, cm.acts[0].id);
+        const cAct = ws.getCell(r, cm.actStartCol);
+        cAct.border = thinBorder;
+        cAct.alignment = { horizontal: 'center', vertical: 'middle' };
+        cAct.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: cm.paleta.body } };
+        if (nota !== null) {
+          cAct.value = Number(nota.toFixed(2));
+          cAct.numFmt = '0.0';
+          cAct.font =
+            nota < config.notaAprobatoria
+              ? { ...boldFont, color: { argb: 'FFCC0000' } }
+              : boldFont;
+        } else {
+          cAct.font = baseFont;
+        }
+        defRefs.push({ colL: colLetter(cm.defCol), peso: cm.peso });
+        continue;
+      }
+
       let sumaCat = 0;
       let countCat = 0;
 
@@ -375,19 +422,15 @@ export async function exportarPlanillaExcel(
   ws.getRow(1).height = 22;
   ws.getRow(2).height = 20;
 
-  // Descargar archivo .xlsx
+  // Descargar archivo .xlsx con diálogo "Guardar como"
   const buffer = await wb.xlsx.writeBuffer();
-  const blob = new Blob([buffer], {
-    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
   const safeCurso = curso.nombre.replace(/[^a-zA-Z0-9_-]/g, '_');
   const safeAsig = (asignatura?.nombre || 'General').replace(/[^a-zA-Z0-9_-]/g, '_');
-  a.download = `Planilla_${safeCurso}_${safeAsig}_P${periodo}.xlsx`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  const fileName = `Planilla_${safeCurso}_${safeAsig}_P${periodo}.xlsx`;
+  await guardarArchivoConDialogo(
+    new Uint8Array(buffer as ArrayBuffer),
+    fileName,
+    'xlsx',
+    'Libro de Excel'
+  );
 }
