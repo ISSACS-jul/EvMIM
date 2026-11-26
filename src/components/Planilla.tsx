@@ -165,6 +165,7 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
         }]);
       }
       setCeldaEditando(null);
+      setCeldaSeleccionada(null);
       setRefresh(r => r + 1);
       onRefresh?.();
     }
@@ -181,6 +182,7 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
       }]);
     }
     setCeldaEditando(null);
+    setCeldaSeleccionada(null);
     setRefresh(r => r + 1);
     onRefresh?.();
   };
@@ -523,7 +525,7 @@ export const Planilla: React.FC<PlanillaProps> = ({ curso, periodo, asignaturaId
                             <td
                               key={act.id}
                               className={`border-r border-slate-700/50 px-1 py-1 text-center cursor-pointer transition ${
-                                isSelected ? 'ring-2 ring-sky-400 bg-sky-500/20' : ''
+                                isSelected ? 'ring-1 ring-inset ring-sky-400/40 bg-sky-500/5' : ''
                               } ${esUnica ? 'bg-slate-800/40' : ''}`}
                               onClick={() => {
                                 setCeldaSeleccionada({ estudianteId: est.id, actividadId: act.id });
